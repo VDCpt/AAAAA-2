@@ -2783,7 +2783,7 @@ const translations = {
         dac7Q2: "2.º Trimestre",
         dac7Q3: "3.º Trimestre",
         dac7Q4: "4.º Trimestre",
-        quantumTitle: "CÁLCULO TRIBUTÁRIO TÉCNICO-JURÍDICA · PROVA RAINHA",
+        quantumTitle: "CÁLCULO TRIBUTÁRIO FORENSE · PROVA RAINHA",
         quantumFormula: "Diferencial de Base em Análise vs Faturada",
         quantumNote: "IVA 23% em falta: — | IVA 6% em falta: —",  // RETIFICAÇÃO 2B: placeholder residual suprimido — valores dinâmicos injectados em updateQuantumCard()
         quantumNoteIVA23: "IVA 23% em falta:",
@@ -6098,10 +6098,31 @@ async function performAudit() {
             window.currentLang = 'pt';
         }
 
+        // F4-MACRO-05: UNIFED_ANALYSIS_COMPLETE com snapshot danoCalculado no payload
+        // Garante que consumidores do evento (nexus.js, unifed_contraperiria_export,
+        // enrichment.js) recebem o valor consolidado sem necessidade de recalcular.
+        // Regra: disparo único por pipeline de análise — nunca em loop ou setInterval.
+        const _danoSnapFinal = UNIFEDSystem.analysis && UNIFEDSystem.analysis.danoCalculado;
         window.dispatchEvent(new CustomEvent('UNIFED_ANALYSIS_COMPLETE', {
-            detail: { systemData: UNIFEDSystem }
+            detail: {
+                systemData:     UNIFEDSystem,
+                danoCalculado:  _danoSnapFinal || null,
+                danoSeteAnos:   (_danoSnapFinal && _danoSnapFinal.danoSeteAnos) || (UNIFEDSystem.analysis.crossings && UNIFEDSystem.analysis.crossings.impactoSeteAnosMercado) || 0,
+                masterHash:     UNIFEDSystem.masterHash || null,
+                timestamp:      new Date().toISOString()
+            }
         }));
-        console.log('[UNIFED-SYNC] ✅ UNIFED_ANALYSIS_COMPLETE despachado (systemData incluído).');
+        if (window.ForensicLogger && typeof window.ForensicLogger.log === 'function') {
+            window.ForensicLogger.log('UNIFED_ANALYSIS_COMPLETE', {
+                danoSeteAnos: (_danoSnapFinal && _danoSnapFinal.danoSeteAnos) || 0,
+                nMotoristas:  38000,
+                prazoLGT:     7,
+                masterHash:   UNIFEDSystem.masterHash || null
+            });
+        }
+        console.log('[UNIFED-SYNC] ✅ UNIFED_ANALYSIS_COMPLETE despachado — dano7Anos: €'
+            + ((_danoSnapFinal && _danoSnapFinal.danoSeteAnos) || 0).toFixed(2)
+            + ' | masterHash: ' + (UNIFEDSystem.masterHash || 'pendente'));
 
         // FALHA 7 — R24: TOP 3 gerado automaticamente após análise.
         // Requisito de estabilidade forense: overlay bloqueia interação durante processamento cognitivo.
@@ -6568,6 +6589,54 @@ function performForensicCrossings() {
     // Torna o campo directamente acessível a panel.html e exportadores.
     // Fórmula: cross.mediaMensalReal = discrepanciaCritica / mesesDados (definida acima).
     UNIFEDSystem.analysis.mediaMensalReal = cross.mediaMensalReal || 0;
+
+    // ── FONTE ÚNICA DE VERDADE: danoCalculado (F4-MACRO) ─────────────────────────
+    // Instrução de bloqueio: o valor de impacto 38.000 motoristas × 7 anos DEVE ser
+    // calculado UMA ÚNICA VEZ por ciclo de análise, via calcularDanoComSeriesMensais(),
+    // e persistido em UNIFEDSystem.analysis.danoCalculado como snapshot imutável.
+    //
+    // Todos os consumidores (painel, triada_export, contraperiria_export, enrichment)
+    // DEVEM ler este campo — nunca recalcular multiplicações independentes.
+    //
+    // Fórmula canónica: calcularDanoConservador(seriesMensais, 38000) × 7
+    //   onde seriesMensais = [|despesas_m - faturaPlataforma_m| para cada mês com dados]
+    //   e calcularDanoConservador aplica IC 99% (Z = 2.576) sobre o vector.
+    // Fundamento normativo: Art. 45.º LGT (prazo 7 anos); INE/IMT (38.000 condutores TVDE PT).
+    // ─────────────────────────────────────────────────────────────────────────────────
+    if (typeof window.calcularDanoComSeriesMensais === 'function') {
+        const _danoAnual = window.calcularDanoComSeriesMensais(38000);
+        const _dano7Anos = _danoAnual * 7;
+        // Garantir coerência: cross.impactoSeteAnosMercado é a mesma base do painel UI
+        // (lida por _syncPureDashboard). Sobrescrever com o valor canónico.
+        cross.impactoSeteAnosMercado = _dano7Anos;
+        cross.impactoAnualMercado    = _danoAnual;
+        cross.impactoMensalMercado   = _danoAnual / 12;
+        // Persistir snapshot imutável no contrato de interface
+        UNIFEDSystem.analysis.danoCalculado = Object.freeze({
+            danoAnualIC99:      _danoAnual,
+            danoSeteAnos:       _dano7Anos,
+            nMotoristas:        38000,
+            prazoAnosLGT:       7,
+            fonteCalculo:       'calcularDanoComSeriesMensais — IC99% Z=2.576',
+            timestampCalculo:   new Date().toISOString(),
+            mesesUsados:        UNIFEDSystem.dataMonths ? UNIFEDSystem.dataMonths.size : 0
+        });
+        console.log('[F4-MACRO] ✅ danoCalculado persistido — dano7Anos: €' + _dano7Anos.toFixed(2)
+            + ' | nMotoristas: 38000 | prazo: 7 anos (Art. 45.º LGT)');
+    } else {
+        // Fallback: se calcularDanoComSeriesMensais ainda não carregou (ordem de scripts),
+        // persistir o valor já calculado por performForensicCrossings (Modo B ou A acima).
+        UNIFEDSystem.analysis.danoCalculado = Object.freeze({
+            danoAnualIC99:      cross.impactoAnualMercado || 0,
+            danoSeteAnos:       cross.impactoSeteAnosMercado || 0,
+            nMotoristas:        38000,
+            prazoAnosLGT:       7,
+            fonteCalculo:       'cross.impactoSeteAnosMercado — fallback (calcularDanoComSeriesMensais indisponível)',
+            timestampCalculo:   new Date().toISOString(),
+            mesesUsados:        UNIFEDSystem.dataMonths ? UNIFEDSystem.dataMonths.size : 0
+        });
+        console.warn('[F4-MACRO] ⚠️ calcularDanoComSeriesMensais indisponível — fallback cross.impactoSeteAnosMercado usado.');
+    }
 
     logAudit(`━━ MATRIZ FORENSE v1.0-COMMERCIAL-LITIGATION ━━ Período: ${UNIFEDSystem.selectedPeriodo} | Meses: ${mesesDados}`, 'info');
     logAudit(`[C1] SAF-T Bruto (${formatCurrency(saftBruto)}) vs DAC7 (${formatCurrency(dac7Total)}) → Δ ${formatCurrency(cross.c1_delta)} (${cross.c1_pct.toFixed(2)}%) — Sub-comunicação plataforma→Estado`, 'warning');
@@ -9225,10 +9294,16 @@ window._syncPureDashboard = (function() {
     let syncInProgress = false;
     let lastSyncTime = 0;
     return async function(system) {
-        if (syncInProgress) return 0;
+        // F4: sincronizar flag global window._isSyncing com closure local syncInProgress.
+        // window._isSyncing é escrita em libertarInterfaceDemonstracao() e no pipeline
+        // de upload (linha ~5008). A closure syncInProgress era independente, criando
+        // dois estados paralelos não sincronizados (race condition potencial).
+        // Solução: ao entrar, reflectir ambas as flags; ao sair (finally), limpar ambas.
+        if (syncInProgress || window._isSyncing) return 0;
         const _now = Date.now();
         if (_now - lastSyncTime < 100) return 0; // throttle
         syncInProgress = true;
+        window._isSyncing = true;
         lastSyncTime = _now;
         try {
             if (!system || !system.analysis) return 0;
@@ -9406,26 +9481,39 @@ window._syncPureDashboard = (function() {
             // Prioridade: ler cross.impacto* populados por calculaCrossings() (fonte única).
             // Fallback: recalcular localmente se cross.impactoMensalMercado === 0 (pipeline
             // ainda não executou calculaCrossings antes do primeiro sync).
-            const macroMeses = (system.dataMonths && system.dataMonths.size > 0)
+            // ── F4-MACRO: Fonte única de verdade — analysis.danoCalculado ──────────────
+            // Prioridade 1: system.analysis.danoCalculado (snapshot frozen, populado por
+            //   performForensicCrossings → calcularDanoComSeriesMensais(38000)).
+            // Prioridade 2: cross.impactoSeteAnosMercado (calculado no mesmo pipeline).
+            // Prioridade 3: recálculo local determinístico (fallback de último recurso).
+            // Regra: NUNCA recalcular multiplicações independentes aqui — apenas ler snapshot.
+            const _danoSnap   = system.analysis && system.analysis.danoCalculado;
+            const macroMeses  = (system.dataMonths && system.dataMonths.size > 0)
                 ? system.dataMonths.size : 1;
-            const _crossMensal = cross.impactoMensalMercado || 0;
-            const _crossAnual  = cross.impactoAnualMercado  || 0;
-            const _cross7Anos  = cross.impactoSeteAnosMercado || 0;
-            // Se cross já está populado, usar directamente (garante coerência Dashboard=PDF)
-            const macroMensal = _crossMensal > 0 ? _crossMensal : ((cross.discrepanciaCritica || 0) / macroMeses) * 38000;
-            const macroAnual  = _crossAnual  > 0 ? _crossAnual  : macroMensal * 12;
-            const macro7Anos  = _cross7Anos  > 0 ? _cross7Anos  : macroAnual * 7;
-            const macroMedia  = (cross.impactoMensalMercado || 0) / 38000; // média por viatura activa
+            const macro7Anos  = (_danoSnap && _danoSnap.danoSeteAnos > 0)
+                ? _danoSnap.danoSeteAnos
+                : (cross.impactoSeteAnosMercado > 0
+                    ? cross.impactoSeteAnosMercado
+                    : ((cross.discrepanciaCritica || 0) / macroMeses) * 38000 * 12 * 7);
+            const macroAnual  = (_danoSnap && _danoSnap.danoAnualIC99 > 0)
+                ? _danoSnap.danoAnualIC99
+                : (cross.impactoAnualMercado  > 0 ? cross.impactoAnualMercado  : macro7Anos / 7);
+            const macroMensal = cross.impactoMensalMercado > 0
+                ? cross.impactoMensalMercado
+                : macroAnual / 12;
+            const macroMedia  = macroMensal / 38000; // média por viatura activa
             const fmtMacro = window.formatForensicCurrency || fmt;
             const macroMediaEl  = document.getElementById('pure-macro-media');
             const macroMensalEl = document.getElementById('pure-macro-mensal');
             const macroAnualEl  = document.getElementById('pure-macro-anual');
             const macro7AnosEl  = document.getElementById('pure-macro-7anos');
-            if (macroMediaEl)  { macroMediaEl.innerText  = fmtMacro(macroMedia);  updated++; }
-            if (macroMensalEl) { macroMensalEl.innerText = fmtMacro(macroMensal); updated++; }
-            if (macroAnualEl)  { macroAnualEl.innerText  = fmtMacro(macroAnual);  updated++; }
-            if (macro7AnosEl)  { macro7AnosEl.innerText  = fmtMacro(macro7Anos);  updated++; }
-            // ── FIM RECTIFICAÇÃO R24-MACRO ────────────────────────────────────────────
+            // data-i18n-ignore: blindagem contra safeTranslate — valores monetários calculados
+            // não devem ser sobrescritos pela troca de idioma PT↔EN
+            if (macroMediaEl)  { macroMediaEl.setAttribute('data-i18n-ignore', 'true');  macroMediaEl.innerText  = fmtMacro(macroMedia);  updated++; }
+            if (macroMensalEl) { macroMensalEl.setAttribute('data-i18n-ignore', 'true'); macroMensalEl.innerText = fmtMacro(macroMensal); updated++; }
+            if (macroAnualEl)  { macroAnualEl.setAttribute('data-i18n-ignore', 'true');  macroAnualEl.innerText  = fmtMacro(macroAnual);  updated++; }
+            if (macro7AnosEl)  { macro7AnosEl.setAttribute('data-i18n-ignore', 'true');  macro7AnosEl.innerText  = fmtMacro(macro7Anos);  updated++; }
+            // ── FIM F4-MACRO ──────────────────────────────────────────────────────────
 
             // ── RECTIFICAÇÃO R24-ATF ──────────────────────────────────────────────────
             // Calcular Score de Persistência (SP) a partir de monthlyData.
@@ -9589,6 +9677,7 @@ window._syncPureDashboard = (function() {
             return updated;
         } finally {
             syncInProgress = false;
+            window._isSyncing = false; // F4: limpar flag global em paralelo com closure local
         }
     };
 })();
@@ -9780,8 +9869,22 @@ console.log('[UNIFED-I18N-INTEGRATION] ✅ Sistema bilíngue integrado com expor
 window.formatForensicCurrency = function(value, lang = null) {
     lang = lang || window.currentLang || 'pt';
 
-    if (typeof value !== 'number' || isNaN(value)) {
-        console.warn('[CURRENCY-FORMAT] ⚠️  Valor inválido:', value);
+    // ITEM 2 — Guard de resiliência com log forense rastreável
+    // Qualquer valor ausente (undefined/null/NaN) em operações monetárias é
+    // registado como [ERR-DATA-MISSING] no ForensicLogger para auditoria posterior.
+    // O retorno '0,00 €' evita propagação de NaN para o DOM e para os PDFs,
+    // mas a falha fica visível no log — nunca oculta silenciosamente.
+    if (value === undefined || value === null || typeof value !== 'number' || isNaN(value)) {
+        const _errCtx = (new Error()).stack ? (new Error()).stack.split('\n')[2] || 'stack indisponível' : 'stack indisponível';
+        console.error('[ERR-DATA-MISSING] Variável ausente no motor de cálculo. Contexto: ' + _errCtx + ' | Valor recebido: ' + String(value));
+        if (window.ForensicLogger && typeof window.ForensicLogger.log === 'function') {
+            window.ForensicLogger.log('ERR_DATA_MISSING', {
+                valorRecebido: String(value),
+                tipo: typeof value,
+                contexto: _errCtx,
+                timestamp: new Date().toISOString()
+            });
+        }
         return '0,00 €';
     }
 

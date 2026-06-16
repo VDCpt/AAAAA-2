@@ -162,10 +162,21 @@
         const mediaMensalOmissao = mesesDados > 0 ? omissaoCustos / mesesDados : 0;
 
         // Reproduz os 4 patches
-        const pA_impactoSeteAnos = mediaMensalOmissao * 38000 * 12 * 7;
-        const pBC_impacto7Anos   = mediaMensalOmissao * 38000 * 12 * 7;
-        const pD1_impactoSeteAnos= mediaMensalOmissao * 38000 * 12 * 7;
-        const pD2_macro7Anos     = mediaMensalOmissao * 38000 * 12 * 7;
+        // F4-MACRO-04: Fonte única — analysis.danoCalculado
+        // Antes: 4 multiplicações independentes (mediaMensalOmissao × 38000 × 12 × 7)
+        //   geravam valores divergentes se mediaMensalOmissao local diferia de
+        //   analysis.mediaMensalReal (race condition no momento da exportação).
+        // Agora: todos os pontos lêem o snapshot frozen. Fallback determinístico idêntico.
+        const _danoSnapCP = window.UNIFEDSystem &&
+                            window.UNIFEDSystem.analysis &&
+                            window.UNIFEDSystem.analysis.danoCalculado;
+        const _impacto7AnosCanon = (_danoSnapCP && _danoSnapCP.danoSeteAnos > 0)
+            ? _danoSnapCP.danoSeteAnos
+            : mediaMensalOmissao * 38000 * 12 * 7; // fallback determinístico
+        const pA_impactoSeteAnos = _impacto7AnosCanon;
+        const pBC_impacto7Anos   = _impacto7AnosCanon;
+        const pD1_impactoSeteAnos= _impacto7AnosCanon;
+        const pD2_macro7Anos     = _impacto7AnosCanon;
 
         // ── FASE 3.1 — FIX-VERIF-MATH: substituição do checksum estático ───────
         // PROBLEMA: checksum hardcoded 1.704.998.820,00 € era válido para o

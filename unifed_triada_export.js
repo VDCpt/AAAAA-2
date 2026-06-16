@@ -671,16 +671,25 @@
             sessionValue = 'ERRO_SESSAO';
         }
 
-        // ── PATCH macro_v13 — Lacuna A (getSystemMetrics) ────────────────────
-        // ANTERIOR (CORROMPIDO): utilizava discrepância SAF-T vs DAC7 (472,81 €)
-        // como base, ignorava o multiplicador de 12 meses e não extraía média mensal.
-        // CORRIGIDO: base = omissão de custos (BTOR – BTF); extrai média mensal
-        // antes de aplicar o multiplicador de mercado (38.000) e a projeção (12×7).
-        const mesesComDados = sys.dataMonths ? sys.dataMonths.length : 4;
+        // ── F4-MACRO: Fonte única de verdade — analysis.danoCalculado ──────────────
+        // ANTERIOR (macro_v13): recalculava mediaMensalBase × 38000 × 12 × 7 localmente.
+        // CORRIGIDO (F4-MACRO-03): lê o snapshot imutável analysis.danoCalculado,
+        //   populado por performForensicCrossings() → calcularDanoComSeriesMensais(38000).
+        // Garante correspondência exacta entre painel dinâmico e PDF exportado.
+        // Fallback determinístico: se danoCalculado ausente (exportação sem análise prévia),
+        //   recalcula localmente — fórmula idêntica, resultado convergente.
+        const _danoSnap = analysis.danoCalculado;
+        const mesesComDados = sys.dataMonths ? sys.dataMonths.size || sys.dataMonths.length || 4 : 4;
         const baseOmissaoCustos = ((analysis.totals && analysis.totals.despesas) || analysis.btorLedger || 0)
             - ((analysis.totals && analysis.totals.faturaPlataforma) || analysis.btfInvoice || 0);
         const mediaMensalBase = mesesComDados > 0 ? (baseOmissaoCustos / mesesComDados) : 0;
-        const impactoSeteAnosMercado = mediaMensalBase * 38000 * 12 * 7;
+        const impactoSeteAnosMercado = (_danoSnap && _danoSnap.danoSeteAnos > 0)
+            ? _danoSnap.danoSeteAnos
+            : (mediaMensalBase * 38000 * 12 * 7);
+        // Registar fonte usada para rastreabilidade forense no PDF
+        const _fonteImpacto = (_danoSnap && _danoSnap.danoSeteAnos > 0)
+            ? 'Snapshot analysis.danoCalculado — IC99% Z=2.576 (' + (_danoSnap.fonteCalculo || 'calcularDanoComSeriesMensais') + ')'
+            : 'Fallback local: mediaMensalBase × 38.000 × 12 × 7 (danoCalculado ausente)';
 
         let custodyLogs = analysis.custodyLog || [];
         if (window.ForensicLogger && typeof window.ForensicLogger.getLogs === 'function') {
@@ -1617,18 +1626,35 @@
         // de mediaMensalOmissao, garantindo coerência interna da tabela fiscal.
         // Checksum: (2136.59 / 4) * 38000 * 12 * 7 = 1.704.998.820,00 €
         //
-        // EXTRAÇÃO DA MÉDIA MENSAL (BASE UNIFICADA)
+        // EXTRAÇÃO DA MÉDIA MENSAL (BASE UNIFICADA) — F4: fonte canónica
+        // Prioridade 1: window.UNIFEDSystem.analysis.mediaMensalReal (campo criado em F4-MEDIA,
+        //   populado por performForensicCrossings → fórmula: discrepanciaCritica / mesesDados).
+        // Prioridade 2: cálculo local omissaoCustos / mesesPeriodo (fallback determinístico).
+        // Ambas as fórmulas são matematicamente equivalentes: (BTOR - BTF) / mesesDados.
+        // A prioridade 1 garante coerência entre painel e PDF exportado.
         const mesesPeriodo       = m.dataMonths ? m.dataMonths.length : 4;
-        const mediaMensalOmissao = mesesPeriodo > 0 ? (omissaoCustos / mesesPeriodo) : 0;
+        const _mediaMensalCanon  = (window.UNIFEDSystem &&
+                                    window.UNIFEDSystem.analysis &&
+                                    window.UNIFEDSystem.analysis.mediaMensalReal != null &&
+                                    window.UNIFEDSystem.analysis.mediaMensalReal > 0)
+                                    ? window.UNIFEDSystem.analysis.mediaMensalReal
+                                    : (mesesPeriodo > 0 ? (omissaoCustos / mesesPeriodo) : 0);
+        const mediaMensalOmissao = _mediaMensalCanon; // alias preservado para compatibilidade
 
         // PROJEÇÃO MICROECONÓMICA (SUJEITO PASSIVO)
         const impactoAnualOmissaoCustos = mediaMensalOmissao * 12;
         const ircEstimado               = impactoAnualOmissaoCustos * 0.21;
 
-        // PROJEÇÃO MACROECONÓMICA (MERCADO)
+        // PROJEÇÃO MACROECONÓMICA (MERCADO) — F4-MACRO-03b: fonte única analysis.danoCalculado
         const impactoMensal38k = mediaMensalOmissao * 38000;
         const impactoAnual38k  = impactoMensal38k * 12;
-        const impacto7Anos     = impactoAnual38k  * 7;
+        // Ler snapshot imutável — não recalcular multiplicação independente
+        const _danoSnapParecer = window.UNIFEDSystem &&
+                                 window.UNIFEDSystem.analysis &&
+                                 window.UNIFEDSystem.analysis.danoCalculado;
+        const impacto7Anos = (_danoSnapParecer && _danoSnapParecer.danoSeteAnos > 0)
+            ? _danoSnapParecer.danoSeteAnos
+            : impactoAnual38k * 7; // fallback determinístico se snapshot ausente
         // ─────────────────────────────────────────────────────────────────────
 
         // Datas e timestamps

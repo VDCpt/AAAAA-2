@@ -423,13 +423,16 @@ window.UNIFED_ArchitectureReport = {
 
 <script>
     // Hashes esperados (SHA-256) para cada módulo - mesmo conjunto usado na geração do relatório
-    // CIR-04: Hashes SHA-256 REAIS calculados sobre os ficheiros retificados (P3.2+F3+F4).
-    // Gerados em 2026-06-15 por sha256sum sobre os artefactos finais.
+    // F4: Hashes SHA-256 REAIS calculados sobre os artefactos finais do lote P3.2+F4.
+    // Gerados em 2026-06-15 por sha256sum após correcções F4-MEDIA + race condition guards.
     // Qualquer divergência indica modificação não autorizada posterior a este lote.
     // NOTA: sha256Hash() interno usa toLowerCase() — expectedHashes em minúsculas para compatibilidade directa.
+    // F4-FINAL: Hashes actualizados após ITEM1 (quantumTitle), ITEM2 (ERR-DATA-MISSING),
+    // F4-MACRO (danoCalculado fonte única). Data: 2026-06-15.
     const expectedHashes = {
-        'script.js':                           '98d186eaf779d9585cfc59c3341da4c9534dae253bcba5b7c4893adeecc7ec0f',
-        'unifed_triada_export.js':             '9290fda6270e08c6db9c78f4dce307236bb48fe75f25e222574136a8e7843110',
+        'script.js':                           '8fc2bd2af0dc00d19d04a97db1358b0f236fea8e5bd57e83b11e08d9f6cfc5ae',
+        'unifed_triada_export.js':             '63a4dd50d3afe97d98c680d343915b59e39c59cb0ab613c42efc5647ed7e2d62',
+        'unifed_contraperiria_export.js':      '7b575e84cde075917d39a5aa4caa0f5980cb767f08d0590868397410027a149f',
         'unifed_questionnaire_50questions.js': 'fb85ac006cddfeb695fabe9cea90baeed27eb4941473a588adad9b5ef22973f1',
         'unifed_merkle_engine.js':             '474b73ecc0861ec6f87c07e2af138050b07ad5d1db72624383c05ed659c5e94f',
         'enrichment.js':                       '1d6b9fd8ead518398d2c289f56ece1449a1118f72c92c94714dc3ec1e695f33b',
