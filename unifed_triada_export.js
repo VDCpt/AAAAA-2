@@ -1621,25 +1621,74 @@
         const asfixiaFinanceira = m.saftGross * 0.06;                   // 493,68 € aprox.
         const contribuicaoIMT = omissaoReceita * 0.05;                  // 23,64 €
 
-        // ── PATCH C — patch_unifed_macro_v13 (bloco atómico unificado) ────────
-        // Consolida projeções micro e macroeconómicas numa base única derivada
-        // de mediaMensalOmissao, garantindo coerência interna da tabela fiscal.
-        // Checksum: (2136.59 / 4) * 38000 * 12 * 7 = 1.704.998.820,00 €
+        // ── PATCH F4-COERENCIA (substituição de PATCH C) ────────────────────────
+        // CAUSA RAIZ DA FRACTURA MATEMÁTICA (detectada em teste empírico):
+        //   m.dataMonths é o array serializado de getSystemMetrics() — pode estar
+        //   vazio se o Set não estava inicializado no momento da serialização.
+        //   omissaoCustos = m.btorLedger - m.btfInvoice pode ser 0 se analysis.totals
+        //   não estava populado. Ambos os problemas causam mediaMensalOmissao ≠ 534,15 €.
         //
-        // EXTRAÇÃO DA MÉDIA MENSAL (BASE UNIFICADA) — F4: fonte canónica
-        // Prioridade 1: window.UNIFEDSystem.analysis.mediaMensalReal (campo criado em F4-MEDIA,
-        //   populado por performForensicCrossings → fórmula: discrepanciaCritica / mesesDados).
-        // Prioridade 2: cálculo local omissaoCustos / mesesPeriodo (fallback determinístico).
-        // Ambas as fórmulas são matematicamente equivalentes: (BTOR - BTF) / mesesDados.
-        // A prioridade 1 garante coerência entre painel e PDF exportado.
-        const mesesPeriodo       = m.dataMonths ? m.dataMonths.length : 4;
-        const _mediaMensalCanon  = (window.UNIFEDSystem &&
-                                    window.UNIFEDSystem.analysis &&
-                                    window.UNIFEDSystem.analysis.mediaMensalReal != null &&
-                                    window.UNIFEDSystem.analysis.mediaMensalReal > 0)
-                                    ? window.UNIFEDSystem.analysis.mediaMensalReal
-                                    : (mesesPeriodo > 0 ? (omissaoCustos / mesesPeriodo) : 0);
-        const mediaMensalOmissao = _mediaMensalCanon; // alias preservado para compatibilidade
+        // CORRECCÃO: ler DIRECTAMENTE do UNIFEDSystem global (não de 'm'),
+        //   que é populado por performForensicCrossings() antes da exportação.
+        //
+        // Hierarquia de prioridade (ordem decrescente de fiabilidade):
+        //   1. analysis.mediaMensalReal — campo canónico F4-MEDIA (discrepanciaCritica/mesesDados)
+        //   2. analysis.crossings.mediaMensalReal — mesmo campo via crossings
+        //   3. analysis.crossings.discrepanciaCritica / dataMonths.size — recálculo directo
+        //   4. omissaoCustos / mesesPeriodo — fallback local (último recurso)
+        //
+        // Checksum de coerência obrigatório: mediaMensalOmissao × 38000 × 12 × 7
+        //   deve igualar danoCalculado.danoSeteAnos (tolerância 1% por IC99%).
+        const _sys_live       = window.UNIFEDSystem || {};
+        const _an_live        = _sys_live.analysis  || {};
+        const _cr_live        = _an_live.crossings  || {};
+        // mesesPeriodo: ler do Set real (não do array serializado)
+        const _mesesSet       = (_sys_live.dataMonths instanceof Set)
+                                    ? _sys_live.dataMonths.size
+                                    : (Array.isArray(_sys_live.dataMonths)
+                                        ? _sys_live.dataMonths.length
+                                        : (m.dataMonths ? m.dataMonths.length : 0));
+        const mesesPeriodo    = _mesesSet > 0 ? _mesesSet : 4; // fallback demo=4
+
+        const _mediaMensalCanon =
+            // P1: campo canónico F4-MEDIA
+            (_an_live.mediaMensalReal != null && _an_live.mediaMensalReal > 0)
+                ? _an_live.mediaMensalReal
+            // P2: crossings.mediaMensalReal
+            : (_cr_live.mediaMensalReal != null && _cr_live.mediaMensalReal > 0)
+                ? _cr_live.mediaMensalReal
+            // P3: recálculo directo de discrepanciaCritica / mesesDados
+            : (_cr_live.discrepanciaCritica > 0 && mesesPeriodo > 0)
+                ? (_cr_live.discrepanciaCritica / mesesPeriodo)
+            // P4: fallback local (omissaoCustos do snapshot 'm')
+            : (mesesPeriodo > 0 ? (omissaoCustos / mesesPeriodo) : 0);
+
+        const mediaMensalOmissao = _mediaMensalCanon;
+
+        // Verificação de coerência matemática — registo forense
+        const _danoSnapCoer = _an_live.danoCalculado;
+        if (_danoSnapCoer && _danoSnapCoer.danoSeteAnos > 0) {
+            const _expected7 = mediaMensalOmissao * 38000 * 12 * 7;
+            const _tolerance = _danoSnapCoer.danoSeteAnos * 0.01; // 1% IC99%
+            if (Math.abs(_expected7 - _danoSnapCoer.danoSeteAnos) > _tolerance) {
+                console.error('[ERR-MATH-COHERENCE] mediaMensalOmissao=' + mediaMensalOmissao.toFixed(4)
+                    + ' × 38000 × 84 = ' + _expected7.toFixed(2)
+                    + ' ≠ danoSeteAnos=' + _danoSnapCoer.danoSeteAnos.toFixed(2)
+                    + ' | divergência=' + Math.abs(_expected7 - _danoSnapCoer.danoSeteAnos).toFixed(2));
+                if (window.ForensicLogger && typeof window.ForensicLogger.log === 'function') {
+                    window.ForensicLogger.log('ERR_MATH_COHERENCE', {
+                        mediaMensalOmissao: mediaMensalOmissao,
+                        calculado7Anos: _expected7,
+                        danoSeteAnosSnapshot: _danoSnapCoer.danoSeteAnos,
+                        divergencia: Math.abs(_expected7 - _danoSnapCoer.danoSeteAnos),
+                        timestamp: new Date().toISOString()
+                    });
+                }
+            } else {
+                console.log('[F4-COERENCIA] ✅ mediaMensalOmissao=' + mediaMensalOmissao.toFixed(2)
+                    + ' € coerente com danoSeteAnos=' + _danoSnapCoer.danoSeteAnos.toFixed(2) + ' €');
+            }
+        }
 
         // PROJEÇÃO MICROECONÓMICA (SUJEITO PASSIVO)
         const impactoAnualOmissaoCustos = mediaMensalOmissao * 12;
