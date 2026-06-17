@@ -9513,7 +9513,17 @@ window._syncPureDashboard = (function() {
             const macroMensal = cross.impactoMensalMercado > 0
                 ? cross.impactoMensalMercado
                 : macroAnual / 12;
-            const macroMedia  = macroMensal / 38000; // média por viatura activa
+            // F4-COERENCIA: macroMedia = mediaMensalReal do operador (534,15 €)
+            // NÃO é macroMensal/38000 (74,78 € = impacto médio por condutor/mês no mercado).
+            // O label "Média mensal" no painel refere-se à omissão mensal média do operador,
+            // que é a mesma base que alimenta a projecção de mercado × 38.000.
+            // Coerência: 534,15 € × 38.000 = 20.297.700 € (Impacto Mensal Mercado).
+            const _mediaMensalRealLive = (system.analysis && system.analysis.mediaMensalReal > 0)
+                ? system.analysis.mediaMensalReal
+                : (system.analysis && system.analysis.crossings && system.analysis.crossings.mediaMensalReal > 0)
+                    ? system.analysis.crossings.mediaMensalReal
+                    : (macroMensal / 38000); // fallback: média por condutor se mediaMensalReal ausente
+            const macroMedia = _mediaMensalRealLive;
             const fmtMacro = window.formatForensicCurrency || fmt;
             const macroMediaEl  = document.getElementById('pure-macro-media');
             const macroMensalEl = document.getElementById('pure-macro-mensal');

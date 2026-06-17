@@ -430,7 +430,7 @@ window.UNIFED_ArchitectureReport = {
     // unifed_architecture_report.js não valida a si próprio (bootstrap problem —
     // a sua integridade é garantida pelo Master Hash do lote em UNIFED_STATE.md).
     const expectedHashes = {
-        'script.js':                           'cd53d35a76c30fcd1d0487b8252f7713fb269ac75f1fcdf82500fb380653bc24',
+        'script.js':                           '9bdb4e51b1c087da6cc7f9aacecc776856c9c0933a1212ef17c9bd9931a1960d',
         'unifed_triada_export.js':             '3bbc6bd7b8518fee39b68416daf096b98bbe691b8f17a78a5ef1dfd90b52e724',
         'unifed_contraperiria_export.js':      '7b575e84cde075917d39a5aa4caa0f5980cb767f08d0590868397410027a149f',
         'unifed_questionnaire_50questions.js': 'fb85ac006cddfeb695fabe9cea90baeed27eb4941473a588adad9b5ef22973f1',
@@ -440,7 +440,7 @@ window.UNIFED_ArchitectureReport = {
         'translations.js':                     '249fe01ae7fa041b5567a6d508290211f275828c6791f01ec5769e9c09ee3ce1',
         'script_injection.js':                 'fda58b5ca22d0427d0ce8e4fade96bad5f393176c32c87af7c748178644c3e20',
         'auth.js':                             '747591e4cc26d930c5dc3d735eb493455ae88ec8d23210eb94d72b120b214237',
-        'index.html':                          '00d4b3313365502d81dfea906a9aedfab8cd12942a85ab3845a24bef5cac365a'
+        'index.html':                          'b2b534672b9fdffa623a1c9bc19d111f1e1bc7103e8734bfd5eefb8096e3ba61'
     };
 
     async function sha256Hash(text) {
