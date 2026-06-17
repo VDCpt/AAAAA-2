@@ -23,16 +23,18 @@ window.UNIFED_ArchitectureReport = {
             cores: navigator.hardwareConcurrency ? `${navigator.hardwareConcurrency}` : 'Unknown'
         };
 
-        // Hashes SHA-256 estáticos reais (pré-calculados) para cada módulo
+        // MODULE_INTEGRITY: hashes SHA-256 reais do lote F4-MACRO-MEDIA.
+        // NOTA: este dicionário é DISTINTO de expectedHashes (usado em validateModuleIntegrity).
+        // Ambos devem estar sincronizados — actualizados em simultâneo a cada lote.
         const MODULE_INTEGRITY = {
-            'script.js': 'e5a3f2c9b8d7e6f5a4b3c2d1e0f9a8b7c6d5e4f3a2b1c0d9e8f7a6b5c4d3e2f1a0b9',
-            'unifed_triada_export.js': '1a2b3c4d5e6f7a8b9c0d1e2f3a4b5c6d7e8f9a0b1c2d3e4f5a6b7c8d9e0f1a2b3',
-            'unifed_questionnaire_50questions.js': '9f8e7d6c5b4a3f2e1d0c9b8a7f6e5d4c3b2a1f0e9d8c7b6a5f4e3d2c1b0a9f8e7d6',
-            'unifed_merkle_engine.js': 'd4c3b2a1f0e9d8c7b6a5f4e3d2c1b0a9f8e7d6c5b4a3f2e1d0c9b8a7f6e5d4c3b2',
-            'enrichment.js': 'f0e9d8c7b6a5f4e3d2c1b0a9f8e7d6c5b4a3f2e1d0c9b8a7f6e5d4c3b2a1f0e9d8',
-            'nexus.js': '7a6b5c4d3e2f1a0b9c8d7e6f5a4b3c2d1e0f9a8b7c6d5e4f3a2b1c0d9e8f7a6b5c4',
-            'translations.js': 'b2a1f0e9d8c7b6a5f4e3d2c1b0a9f8e7d6c5b4a3f2e1d0c9b8a7f6e5d4c3b2a1f0e9',
-            'script_injection.js': 'c5b4a3f2e1d0c9b8a7f6e5d4c3b2a1f0e9d8c7b6a5f4e3d2c1b0a9f8e7d6c5b4a3f2'
+            'script.js':                           '9bdb4e51b1c087da6cc7f9aacecc776856c9c0933a1212ef17c9bd9931a1960d',
+            'unifed_triada_export.js':             '3bbc6bd7b8518fee39b68416daf096b98bbe691b8f17a78a5ef1dfd90b52e724',
+            'unifed_questionnaire_50questions.js': 'fb85ac006cddfeb695fabe9cea90baeed27eb4941473a588adad9b5ef22973f1',
+            'unifed_merkle_engine.js':             '474b73ecc0861ec6f87c07e2af138050b07ad5d1db72624383c05ed659c5e94f',
+            'enrichment.js':                       '1d6b9fd8ead518398d2c289f56ece1449a1118f72c92c94714dc3ec1e695f33b',
+            'nexus.js':                            '68e41429abdeae7f87081b1851f66ab0dc8833510de179e56b79a4fdf6a6e45e',
+            'translations.js':                     '249fe01ae7fa041b5567a6d508290211f275828c6791f01ec5769e9c09ee3ce1',
+            'script_injection.js':                 'fda58b5ca22d0427d0ce8e4fade96bad5f393176c32c87af7c748178644c3e20'
         };
 
         const modules = [
