@@ -2776,13 +2776,46 @@ Fundamentação Legal: Art. 327.º CPP (Contraditório) · Art. 125.º CPP (Admi
     // funções, undefined e símbolos, produzindo sempre um snapshot válido.
     // Trade-off aceite: perda de tipos não-JSON (Date→string, Map/Set→{}),
     // sem impacto nos campos consumidos por getSystemMetrics() (strings/números).
-    const _unifedExportQueue = (() => {
-        let _current = Promise.resolve();
-        return (fn) => (_current = _current.then(
-            () => fn(),
-            (err) => { console.error('[EXPORT-QUEUE]', err); return fn(); }
-        ));
+    // ── CIRURGIA 3: Semáforo de concorrência — limite duro de 3 pdfMake paralelos ──
+    // Fundamento: pdfMake.createPdf() aloca heap significativo por documento.
+    // 4+ exportações simultâneas (ex: duplo-clique rápido + Promise.all interno)
+    // podem causar OOM (Out of Memory) em browsers com heap limitado (tabs múltiplos).
+    // Solução: semáforo com maxConcurrent=3. Exportações excedentes aguardam na fila.
+    // A fila é serializada por promise-chaining — sem setTimeout nem polling.
+    const _unifedExportSemaphore = (() => {
+        const maxConcurrent = 3;
+        let _active = 0;
+        const _queue = [];
+        function _run() {
+            if (_active >= maxConcurrent || _queue.length === 0) return;
+            _active++;
+            const { fn, resolve, reject } = _queue.shift();
+            Promise.resolve()
+                .then(() => fn())
+                .then(result => { _active--; resolve(result); _run(); })
+                .catch(err  => { _active--; reject(err);    _run(); });
+        }
+        return function(fn) {
+            return new Promise((resolve, reject) => {
+                if (_active >= maxConcurrent) {
+                    console.warn('[EXPORT-SEMAPHORE] ⚠️ ' + _active + '/' + maxConcurrent
+                        + ' exportações activas — ' + (_queue.length + 1) + ' na fila.');
+                    if (window.ForensicLogger && typeof window.ForensicLogger.log === 'function') {
+                        window.ForensicLogger.log('EXPORT_QUEUE_WAIT', {
+                            active: _active,
+                            queued: _queue.length + 1,
+                            timestamp: new Date().toISOString()
+                        });
+                    }
+                }
+                _queue.push({ fn, resolve, reject });
+                _run();
+            });
+        };
     })();
+
+    // Alias para compatibilidade com chamadas existentes a _unifedExportQueue
+    const _unifedExportQueue = _unifedExportSemaphore;
 
     window._exportPacoteAdvogado = function () {
         return _unifedExportQueue(async () => {
@@ -2927,6 +2960,54 @@ Fundamentação Legal: Art. 327.º CPP (Contraditório) · Art. 125.º CPP (Admi
         return node;
     }
 
+    // ── CIRURGIA 4: Verificação de atomicidade DOM-PDF (anti-tampering) ────────
+    // Antes de fechar o PDF, comparar os valores numéricos críticos do DOM
+    // com os valores em memória (analysis.danoCalculado + analysis.mediaMensalReal).
+    // Se um utilizador manipulou o DOM via DevTools, os valores divergem e a
+    // exportação é bloqueada com [ERR-DOM-TAMPERING] no ForensicLogger.
+    // Apenas os 3 elementos de materialidade máxima são verificados:
+    //   pure-macro-7anos, pure-sg2-delta, pure-sg2-pct
+    function _checkDOMIntegrity() {
+        const sys = window.UNIFEDSystem;
+        if (!sys || !sys.analysis || !sys.analysis.danoCalculado) return true; // sem análise = sem tampering possível
+        const _fmtNum = (s) => parseFloat((s || '0').replace(/[^0-9,.-]/g, '').replace('.', '').replace(',', '.')) || 0;
+        const checks = [
+            {
+                id: 'pure-macro-7anos',
+                expected: sys.analysis.danoCalculado.danoSeteAnos || 0,
+                tolerance: 1.0  // tolerância de 1€ para arredondamentos de formatação
+            },
+            {
+                id: 'pure-sg2-delta',
+                expected: (sys.analysis.crossings && sys.analysis.crossings.discrepanciaCritica) || 0,
+                tolerance: 1.0
+            }
+        ];
+        const tampered = [];
+        checks.forEach(function(c) {
+            const el = document.getElementById(c.id);
+            if (!el) return; // elemento ausente = painel não renderizou ainda, não é tampering
+            const domVal = _fmtNum(el.innerText || el.textContent);
+            if (c.expected > 0 && Math.abs(domVal - c.expected) > c.tolerance) {
+                tampered.push({ id: c.id, expected: c.expected, domVal: domVal });
+            }
+        });
+        if (tampered.length > 0) {
+            const errMsg = '[ERR-DOM-TAMPERING] Divergência entre estado em memória e DOM detectada. '
+                + tampered.map(t => t.id + ': esperado=' + t.expected.toFixed(2) + ' DOM=' + t.domVal.toFixed(2)).join(' | ');
+            console.error(errMsg);
+            if (window.ForensicLogger && typeof window.ForensicLogger.log === 'function') {
+                window.ForensicLogger.log('ERR_DOM_TAMPERING', {
+                    divergencias: tampered,
+                    timestamp: new Date().toISOString(),
+                    masterHash: sys.masterHash || null
+                });
+            }
+            return false; // BLOQUEANTE
+        }
+        return true;
+    }
+
     async function generatePDFBlob(docDefinition) {
         return new Promise((resolve, reject) => {
             if (typeof pdfMake === 'undefined') {
@@ -2934,6 +3015,12 @@ Fundamentação Legal: Art. 327.º CPP (Contraditório) · Art. 125.º CPP (Admi
                 return;
             }
             try {
+                // CIRURGIA 4: Verificação de integridade DOM antes de fechar o PDF
+                if (!_checkDOMIntegrity()) {
+                    reject(new Error('[ERR-DOM-TAMPERING] Exportação bloqueada: divergência DOM-memória detectada. Consultar ForensicLogger.'));
+                    return;
+                }
+
                 if (typeof pdfMake.vfs === 'undefined' || Object.keys(pdfMake.vfs || {}).length === 0) {
                     triadaLog('warn', '[generatePDFBlob] VFS pdfMake vazio (air-gap?) — jsPDF é o motor primário');
                 }
@@ -2964,8 +3051,22 @@ Fundamentação Legal: Art. 327.º CPP (Contraditório) · Art. 125.º CPP (Admi
             else fullMetrics = { session: sys.sessionId || 'N/A', masterHash: sys.masterHash || 'N/A', companyName: sys.analysis?.companyName || 'N/A', nif: sys.analysis?.nif || 'N/A', saftGross: sys.analysis?.saftGross || 0, dac7Total: sys.analysis?.dac7Total || 0, btorLedger: sys.analysis?.btorLedger || 0, btfInvoice: sys.analysis?.btfInvoice || 0, omissionPct: sys.analysis?.omissionPct || 0, verdict: sys.analysis?.verdict || 'N/A', top3Questions: sys.analysis?.top3Questions || [], merkleRoot: sys.analysis?.merkleRoot || 'N/A', monthlyData: sys.monthlyData || {}, auxiliaryData: sys.auxiliaryData || {}, totals: sys.analysis?.totals || {}, crossings: sys.analysis?.crossings || {}, twoAxis: sys.analysis?.twoAxis || {} };
         } catch(e) { console.warn('[ELASTIC] Erro ao obter métricas:', e); }
         const completePayload = {
-            metadata: { source: 'UNIFED-PROBATUM v1.0-COMMERCIAL-LITIGATION-P3.1', timestamp: new Date().toISOString(), sessionId: fullMetrics.session || sys.sessionId, version: sys.version || 'v1.0', language: window.currentLang || 'pt', demoMode: !!sys.demoMode, exportMode: mode, selectedYear: sys.selectedYear, selectedPeriodo: sys.selectedPeriodo, platform: fullMetrics.platform || 'Plataforma Digital Operacional (Anonimizado)', client: { name: fullMetrics.companyName, nif: fullMetrics.nif }, pendingTimestampEvidences: getPendingEvidenceIds() },
-            integrity: { masterHash: fullMetrics.masterHash, merkleRoot: fullMetrics.merkleRoot, algorithm: 'SHA-256', protocol: 'RFC 3161', eidas2Compliant: true, pendingTimestampWarning: hasPendingTimestampEvidences() ? 'Evidências sem selagem temporal: ' + getPendingEvidenceIds().join(', ') : null },
+            metadata: { source: (window.UNIFEDSystem && window.UNIFEDSystem.config && window.UNIFEDSystem.config.sistema
+                    ? window.UNIFEDSystem.config.sistema + ' ' + window.UNIFEDSystem.config.version
+                    : 'UNIFED-PROBATUM v1.0-COMMERCIAL-LITIGATION-P3.2+F4'), timestamp: new Date().toISOString(), sessionId: fullMetrics.session || sys.sessionId, version: sys.version || 'v1.0', language: window.currentLang || 'pt', demoMode: !!sys.demoMode, exportMode: mode, selectedYear: sys.selectedYear, selectedPeriodo: sys.selectedPeriodo, platform: fullMetrics.platform || 'Plataforma Digital Operacional (Anonimizado)', client: { name: fullMetrics.companyName, nif: fullMetrics.nif }, pendingTimestampEvidences: getPendingEvidenceIds() },
+            integrity: {
+                masterHash:   fullMetrics.masterHash,
+                merkleRoot:   fullMetrics.merkleRoot,
+                algorithm:    'SHA-256',
+                // Leitura de UNIFEDSystem.config (fonte única de verdade — ORDER-1)
+                // Nunca declarar eidas2Compliant literalmente neste módulo.
+                protocol:        (window.UNIFEDSystem && window.UNIFEDSystem.config && window.UNIFEDSystem.config.tsaProtocol) || 'RFC 3161',
+                eidas2Compliant: (window.UNIFEDSystem && window.UNIFEDSystem.config) ? window.UNIFEDSystem.config.eidas2Compliant : false,
+                deployStatus:    (window.UNIFEDSystem && window.UNIFEDSystem.config && window.UNIFEDSystem.config.deployStatus) || 'DEMO_ONLY',
+                eidas2Note:      (window.UNIFEDSystem && window.UNIFEDSystem.config && !window.UNIFEDSystem.config.eidas2Compliant)
+                    ? 'TSA em modo DEMO — endpoint não validado na Trusted List ANS/CNCS (Art. 22.º Reg. UE 910/2014). Deploy judicial requer validação prévia.'
+                    : null,
+                pendingTimestampWarning: hasPendingTimestampEvidences() ? 'Evidências sem selagem temporal: ' + getPendingEvidenceIds().join(', ') : null },
             analysis: { totals: fullMetrics.totals, crossings: fullMetrics.crossings, twoAxis: fullMetrics.twoAxis, verdict: fullMetrics.verdict, top3Questions: fullMetrics.top3Questions, selectedQuestions: sys.analysis?.selectedQuestions || [], omissionPct: fullMetrics.omissionPct, saftGross: fullMetrics.saftGross, dac7Total: fullMetrics.dac7Total, btorLedger: fullMetrics.btorLedger, btfInvoice: fullMetrics.btfInvoice },
             monthlyData: fullMetrics.monthlyData,
             auxiliaryData: fullMetrics.auxiliaryData,

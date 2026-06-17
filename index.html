@@ -288,13 +288,18 @@ console.log('[UNIFED-CONFIG] ℹ️  Proxy LLM configurado: ' + (window.UNIFED_P
                 display: flex; align-items: center; justify-content: center;
                 font-family: 'JetBrains Mono', monospace;
             `;
+            // CIRURGIA 2b: Modal bilingue PT-PT / EN-US (espelho de auth.js)
+            const _lang = (typeof window.currentLang === 'string' && window.currentLang === 'en') ? 'en' : 'pt';
+            const _s = _lang === 'en'
+                ? { subtitle: 'Authentication required to access the forensic system.', placeholder: 'Password', button: 'Access', error: 'Incorrect password. Please try again.' }
+                : { subtitle: 'Autenticação necessária para aceder ao sistema forense.', placeholder: 'Palavra-passe de acesso', button: 'Aceder', error: 'Palavra-passe incorreta. Tente novamente.' };
             overlay.innerHTML = `
                 <div style="background:#0f172a; border:1px solid #00e5ff; border-radius:8px; padding:2rem; max-width:400px; text-align:center;">
                     <h3 style="color:#00e5ff; margin-bottom:1rem;">🔐 UNIFED-PROBATUM</h3>
-                    <p style="color:#94a3b8; margin-bottom:1.5rem;">Autenticação necessária para aceder ao sistema forense.</p>
-                    <input type="password" id="unifed-auth-password" placeholder="Password de acesso" style="width:100%; padding:8px; background:#1e293b; border:1px solid #334155; color:white; border-radius:4px; margin-bottom:1rem;">
-                    <button id="unifed-auth-submit" style="background:#00e5ff; color:#000; border:none; padding:8px 24px; border-radius:4px; cursor:pointer; font-weight:bold;">Aceder</button>
-                    <p id="unifed-auth-error" style="color:#ef4444; font-size:0.75rem; margin-top:1rem; display:none;">Password incorreta. Tente novamente.</p>
+                    <p style="color:#94a3b8; margin-bottom:1.5rem;">${_s.subtitle}</p>
+                    <input type="password" id="unifed-auth-password" placeholder="${_s.placeholder}" style="width:100%; padding:8px; background:#1e293b; border:1px solid #334155; color:white; border-radius:4px; margin-bottom:1rem;">
+                    <button id="unifed-auth-submit" style="background:#00e5ff; color:#000; border:none; padding:8px 24px; border-radius:4px; cursor:pointer; font-weight:bold;">${_s.button}</button>
+                    <p id="unifed-auth-error" style="color:#ef4444; font-size:0.75rem; margin-top:1rem; display:none;">${_s.error}</p>
                 </div>
             `;
             document.body.appendChild(overlay);

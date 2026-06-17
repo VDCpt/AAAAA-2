@@ -423,22 +423,24 @@ window.UNIFED_ArchitectureReport = {
 
 <script>
     // Hashes esperados (SHA-256) para cada módulo - mesmo conjunto usado na geração do relatório
-    // F4: Hashes SHA-256 REAIS calculados sobre os artefactos finais do lote P3.2+F4.
-    // Gerados em 2026-06-15 por sha256sum após correcções F4-MEDIA + race condition guards.
-    // Qualquer divergência indica modificação não autorizada posterior a este lote.
-    // NOTA: sha256Hash() interno usa toLowerCase() — expectedHashes em minúsculas para compatibilidade directa.
-    // F4-FINAL: Hashes actualizados após ITEM1 (quantumTitle), ITEM2 (ERR-DATA-MISSING),
-    // F4-MACRO (danoCalculado fonte única). Data: 2026-06-15.
+    // F4-FINAL-LOCK: Hashes SHA-256 definitivos — lote selado em 2026-06-15.
+    // Calculados por sha256sum após todas as cirurgias F4 (C1-C4 + ITEM1-4 + F4-MACRO).
+    // sha256Hash() interno usa toLowerCase() — expectedHashes em minúsculas para compatibilidade.
+    // Qualquer divergência em runtime indica modificação posterior ao estado selado.
+    // unifed_architecture_report.js não valida a si próprio (bootstrap problem —
+    // a sua integridade é garantida pelo Master Hash do lote em UNIFED_STATE.md).
     const expectedHashes = {
-        'script.js':                           '8fc2bd2af0dc00d19d04a97db1358b0f236fea8e5bd57e83b11e08d9f6cfc5ae',
-        'unifed_triada_export.js':             '63a4dd50d3afe97d98c680d343915b59e39c59cb0ab613c42efc5647ed7e2d62',
+        'script.js':                           'cd53d35a76c30fcd1d0487b8252f7713fb269ac75f1fcdf82500fb380653bc24',
+        'unifed_triada_export.js':             '129981372dacaeed09e5569c64e89576dc25d17d007e917aa5654881d343c251',
         'unifed_contraperiria_export.js':      '7b575e84cde075917d39a5aa4caa0f5980cb767f08d0590868397410027a149f',
         'unifed_questionnaire_50questions.js': 'fb85ac006cddfeb695fabe9cea90baeed27eb4941473a588adad9b5ef22973f1',
         'unifed_merkle_engine.js':             '474b73ecc0861ec6f87c07e2af138050b07ad5d1db72624383c05ed659c5e94f',
         'enrichment.js':                       '1d6b9fd8ead518398d2c289f56ece1449a1118f72c92c94714dc3ec1e695f33b',
         'nexus.js':                            '68e41429abdeae7f87081b1851f66ab0dc8833510de179e56b79a4fdf6a6e45e',
         'translations.js':                     '249fe01ae7fa041b5567a6d508290211f275828c6791f01ec5769e9c09ee3ce1',
-        'script_injection.js':                 'fda58b5ca22d0427d0ce8e4fade96bad5f393176c32c87af7c748178644c3e20'
+        'script_injection.js':                 'fda58b5ca22d0427d0ce8e4fade96bad5f393176c32c87af7c748178644c3e20',
+        'auth.js':                             '747591e4cc26d930c5dc3d735eb493455ae88ec8d23210eb94d72b120b214237',
+        'index.html':                          '00d4b3313365502d81dfea906a9aedfab8cd12942a85ab3845a24bef5cac365a'
     };
 
     async function sha256Hash(text) {

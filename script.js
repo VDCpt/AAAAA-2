@@ -149,11 +149,23 @@ document.addEventListener('DOMContentLoaded', function() {
 
 if (!window.UNIFEDSystem) {
     window.UNIFEDSystem = {
-        config: {
-            version: (window.UNIFED_VERSION && window.UNIFED_VERSION.full) || 'v1.0-COMMERCIAL-LITIGATION',
-            timestamp: new Date().toISOString(),
-            language: 'pt'
-        },
+        // ── Contrato central de configuração (ORDER-1) ─────────────────────────
+        // Fonte única de verdade para versão e conformidade.
+        // Todos os módulos de exportação (unifed_triada_export.js, enrichment.js)
+        // DEVEM ler window.UNIFEDSystem.config — nunca declarar valores literais próprios.
+        // Object.freeze() impede reentrâncias e injecções em runtime.
+        config: Object.freeze({
+            version:        (window.UNIFED_VERSION && window.UNIFED_VERSION.full) || 'v1.0-COMMERCIAL-LITIGATION-P3.2+F4',
+            timestamp:      new Date().toISOString(),
+            language:       'pt',
+            eidas2Compliant: (window.UNIFED_TSA_CONFIG && window.UNIFED_TSA_CONFIG.eidas2Compliant) || false,
+            tsaProvider:    (window.UNIFED_TSA_CONFIG && window.UNIFED_TSA_CONFIG.provider) || 'PLACEHOLDER — não validado na Trusted List ANS/CNCS',
+            tsaProtocol:    'RFC 3161',
+            deployStatus:   (window.UNIFED_TSA_CONFIG && window.UNIFED_TSA_CONFIG.deployStatus) || 'DEMO_ONLY',
+            modo:           (window.UNIFED_CONFIG && window.UNIFED_CONFIG.modo) || 'DEMO',
+            sistema:        (window.UNIFED_CONFIG && window.UNIFED_CONFIG.sistema) || 'UNIFED-PROBATUM',
+            normaRastreabilidade: 'D.L. n.º 28/2019 · ISO/IEC 27037:2012 · Art. 125.º CPP'
+        }),
         data: {
             saftInput: null,
             extractInput: null,
