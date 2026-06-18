@@ -6888,57 +6888,38 @@ function updateDashboard() {
 
     const quantumBreakdownEl = document.getElementById('quantumBreakdown');
     if (quantumBreakdownEl) {
-        const qLang = currentLang;
-        quantumBreakdownEl.innerHTML = `
-            <div class="quantum-breakdown-item">
-                <span>BTOR ${qLang === 'pt' ? '(Despesas/Comissões Extrato)' : '(Expenses/Commissions Statement)'}:</span>
-                <span>${formatCurrency(cross.btor)}</span>
-            </div>
-            <div class="quantum-breakdown-item">
-                <span>BTF ${qLang === 'pt' ? '(Faturas)' : '(Invoices)'}:</span>
-                <span>${formatCurrency(cross.btf)}</span>
-            </div>
-            <div class="quantum-breakdown-item" style="border-top: 1px solid rgba(0,229,255,0.3); margin-top:0.3rem; padding-top:0.3rem;">
-                <span>${qLang === 'pt' ? 'DISCREPÂNCIA DESPESAS/COMISSÕES' : 'EXPENSE/COMMISSION DISCREPANCY'}:</span>
-                <span style="color:var(--warn-primary);">${formatCurrency(cross.discrepanciaCritica)} (${cross.percentagemOmissao.toFixed(2)}%)</span>
-            </div>
-            <div class="quantum-breakdown-item">
-                <span>${qLang === 'pt' ? 'Ganhos (Extrato)' : 'Earnings (Statement)'}:</span>
-                <span>${formatCurrency(totals.ganhos)}</span>
-            </div>
-            <div class="quantum-breakdown-item">
-                <span>SAF-T ${qLang === 'pt' ? 'Bruto' : 'Gross'}:</span>
-                <span>${formatCurrency(totals.saftBruto)}</span>
-            </div>
-            <div class="quantum-breakdown-item">
-                <span>DAC7 (${UNIFEDSystem.selectedPeriodo}):</span>
-                <span>${formatCurrency(totals.dac7TotalPeriodo)}</span>
-            </div>
-            <div class="quantum-breakdown-item" style="border-top: 1px solid rgba(245,158,11,0.3); margin-top:0.3rem; padding-top:0.3rem;">
-                <span>SAF-T vs DAC7 ${qLang === 'pt' ? 'DISCREPÂNCIA' : 'DISCREPANCY'}:</span>
-                <span style="color:var(--warn-secondary);">${formatCurrency(cross.discrepanciaSaftVsDac7)} (${cross.percentagemSaftVsDac7.toFixed(2)}%)</span>
-            </div>
-            <div class="quantum-breakdown-item">
-                <span>${qLang === 'pt' ? 'Meses com dados' : 'Months with data'}:</span>
-                <span>${mesesDados}</span>
-            </div>
-            <div class="quantum-breakdown-item">
-                <span>${qLang === 'pt' ? 'Média mensal' : 'Monthly average'}:</span>
-                <span>${formatCurrency(cross.discrepanciaCritica / mesesDados)}</span>
-            </div>
-            <div class="quantum-breakdown-item" style="border-top: 1px solid rgba(0,229,255,0.3); margin-top:0.3rem; padding-top:0.3rem;">
-                <span>${qLang === 'pt' ? 'Impacto Mensal Mercado (38k)' : 'Monthly Market Impact (38k)'}:</span>
-                <span>${formatCurrency(cross.impactoMensalMercado)}</span>
-            </div>
-            <div class="quantum-breakdown-item">
-                <span>${qLang === 'pt' ? 'Impacto Anual Mercado' : 'Annual Market Impact'}:</span>
-                <span>${formatCurrency(cross.impactoAnualMercado)}</span>
-            </div>
-            <div class="quantum-breakdown-item">
-                <span>${qLang === 'pt' ? 'IMPACTO 7 ANOS' : '7‑YEAR IMPACT'}:</span>
-                <span style="color:var(--accent-primary); font-weight:800;">${formatCurrency(cross.impactoSeteAnosMercado)}</span>
-            </div>
+        // FASE 10 — PROBATUM-FINAL-SEAL: bloco reactivo bilingue com separação
+        // entre omissão média do caso concreto (mediaBruta) e média conservadora IC99%
+        // por operador (mediaConservadora). Aviso de assimetria DAC7 activado quando
+        // selectedPeriodo=2s e mesesDados<6 (DAC7 cobre 6 meses, extratos 4).
+        const qLang = window.currentLang || 'pt';
+        const mesesDados = UNIFEDSystem.dataMonths.size || 1;
+        const mediaBruta = cross.discrepanciaCritica / mesesDados;
+        const mediaConservadora = cross.impactoMensalMercado / 38000;
+        const is2S = (UNIFEDSystem.selectedPeriodo || 'anual') === '2s';
+        const hasAssimetria = is2S && mesesDados < 6;
+        const _ffc = window.formatForensicCurrency || formatCurrency;
+
+        let html = `
+        <div class="quantum-breakdown-item"><span>BTOR ${qLang === 'pt' ? '(Despesas/Comissões Extrato)' : '(Expenses/Commissions Statement)'}:</span><span>${_ffc(cross.btor)}</span></div>
+        <div class="quantum-breakdown-item"><span>BTF ${qLang === 'pt' ? '(Faturas)' : '(Invoices)'}:</span><span>${_ffc(cross.btf)}</span></div>
+        <div class="quantum-breakdown-item" style="border-top:1px solid rgba(0,229,255,0.3);margin-top:0.3rem;padding-top:0.3rem;"><span>${qLang === 'pt' ? 'DISCREPÂNCIA DESPESAS/COMISSÕES' : 'EXPENSE/COMMISSION DISCREPANCY'}:</span><span style="color:var(--warn-primary);">${_ffc(cross.discrepanciaCritica)} (${cross.percentagemOmissao.toFixed(2)}%)</span></div>
+        <div class="quantum-breakdown-item"><span>${qLang === 'pt' ? 'Ganhos (Extrato)' : 'Earnings (Statement)'}:</span><span>${_ffc(totals.ganhos)}</span></div>
+        <div class="quantum-breakdown-item"><span>SAF-T ${qLang === 'pt' ? 'Bruto' : 'Gross'}:</span><span>${_ffc(totals.saftBruto)}</span></div>
+        <div class="quantum-breakdown-item"><span>DAC7 (${UNIFEDSystem.selectedPeriodo}):</span><span>${_ffc(totals.dac7TotalPeriodo)}</span></div>
+        <div class="quantum-breakdown-item" style="border-top:1px solid rgba(245,158,11,0.3);margin-top:0.3rem;padding-top:0.3rem;"><span>SAF-T vs DAC7 ${qLang === 'pt' ? 'DISCREPÂNCIA' : 'DISCREPANCY'}:</span><span style="color:var(--warn-secondary);">${_ffc(cross.discrepanciaSaftVsDac7)} (${cross.percentagemSaftVsDac7.toFixed(2)}%)</span></div>
+        <div class="quantum-breakdown-item"><span>${qLang === 'pt' ? 'Meses com dados' : 'Months with data'}:</span><span>${mesesDados}</span></div>
+        <div class="quantum-breakdown-item"><span>${qLang === 'pt' ? 'Omissão média mensal (caso concreto)' : 'Average monthly omission (specific case)'}:</span><span>${_ffc(mediaBruta)}</span></div>
+        <div class="quantum-breakdown-item" style="border-top:1px solid rgba(0,229,255,0.3);margin-top:0.3rem;padding-top:0.3rem;"><span>${qLang === 'pt' ? 'Média conservadora IC99% (por operador)' : 'Conservative IC99% average (per operator)'}:</span><span>${_ffc(mediaConservadora)}</span></div>
+        <div class="quantum-breakdown-item"><span>${qLang === 'pt' ? 'Impacto Mensal Mercado (38k)' : 'Monthly Market Impact (38k)'}:</span><span>${_ffc(cross.impactoMensalMercado)}</span></div>
+        <div class="quantum-breakdown-item"><span>${qLang === 'pt' ? 'Impacto Anual Mercado' : 'Annual Market Impact'}:</span><span>${_ffc(cross.impactoAnualMercado)}</span></div>
+        <div class="quantum-breakdown-item"><span>${qLang === 'pt' ? 'IMPACTO 7 ANOS' : '7‑7‑YEAR IMPACT'}:</span><span style="color:var(--accent-primary);font-weight:800;">${_ffc(cross.impactoSeteAnosMercado)}</span></div>
         `;
+
+        if (hasAssimetria) {
+            html += `<div class="quantum-breakdown-item" style="border-top:1px solid rgba(245,158,11,0.5);margin-top:0.3rem;padding-top:0.3rem;color:#f59e0b;background:rgba(245,158,11,0.05);border-radius:4px;padding:6px 10px;"><span>⚠️ ${qLang === 'pt' ? 'Aviso: DAC7 (2.º Semestre = 6 meses) vs Extratos/SAF-T (4 meses) — a comparação direta pode subestimar a discrepância. Considere pro-rata.' : 'Warning: DAC7 (2nd Semester = 6 months) vs Statements/SAF-T (4 months) — direct comparison may underestimate discrepancy. Consider pro-rata.'}</span></div>`;
+        }
+        quantumBreakdownEl.innerHTML = html;
     }
 
     const jurosCard = document.getElementById('jurosCard');
@@ -9613,6 +9594,38 @@ window._syncPureDashboard = (function() {
                 if (atfClassifyEl) { atfClassifyEl.innerText = 'DADOS INSUFICIENTES (1 mês)'; }
                 if (atfMesesEl)    { atfMesesEl.innerText = `1 mês com dados (${monthKeys[0]})`; }
             }
+
+            // ── FASE 10 — BLOCO 2: Cálculo determinístico de outliers via desvio padrão ──
+            // Usa população completa (não amostra) dos deltas mensais |BTOR_m - BTF_m|.
+            // outlierCount = pontos fora do intervalo [μ - 2σ, μ + 2σ].
+            // Substitui o valor estático "0 outliers" hardcoded no DOM.
+            {
+                const diffValues = monthKeys.map(m =>
+                    Math.abs((monthlyData[m].despesas || 0) - (monthlyData[m].faturaPlataforma || 0)));
+                const avgDiff = diffValues.reduce((a, b) => a + b, 0) / (diffValues.length || 1);
+                const stdDevDiff = diffValues.length > 1
+                    ? Math.sqrt(diffValues.map(x => Math.pow(x - avgDiff, 2)).reduce((a, b) => a + b, 0) / (diffValues.length - 1))
+                    : 0;
+                const outlierCount = stdDevDiff > 0
+                    ? diffValues.filter(x => Math.abs(x - avgDiff) > 2 * stdDevDiff).length
+                    : 0;
+
+                const outliersEl = document.getElementById('pure-atf-outliers');
+                if (outliersEl) {
+                    outliersEl.setAttribute('data-i18n-ignore', 'true');
+                    outliersEl.textContent = `${outlierCount} outliers > 2σ`;
+                    updated++;
+                }
+                const outliersSubEl = document.getElementById('pure-atf-outliers-sub');
+                if (outliersSubEl) {
+                    outliersSubEl.setAttribute('data-i18n-ignore', 'true');
+                    const isPT = window.currentLang === 'pt';
+                    outliersSubEl.textContent = outlierCount === 0
+                        ? (isPT ? 'Sem picos estatisticamente anómalos' : 'No statistically anomalous peaks')
+                        : (isPT ? `${outlierCount} ponto(s) fora do intervalo esperado` : `${outlierCount} point(s) outside expected range`);
+                    updated++;
+                }
+            }
             // ── FIM RECTIFICAÇÃO R24-ATF ──────────────────────────────────────────────
 
             // Percentagens
@@ -10827,12 +10840,17 @@ if (document.readyState === 'complete' || document.readyState === 'interactive')
                     // Micro-adiamento para garantir que o DOM está pronto
                     setTimeout(generateQRCode, 0);
                 }
+                // FASE 10: cascata _syncPureDashboard para actualizar todos os
+                // elementos DOM que exibem masterHash (pure-hash-prefix, etc.)
+                if (typeof window._syncPureDashboard === 'function') {
+                    setTimeout(function() { window._syncPureDashboard(window.UNIFEDSystem); }, 50);
+                }
             }
         },
         configurable: true,
         enumerable: true
     });
-    console.log('[WATCH-4] ✅ Watcher reactivo instalado em UNIFEDSystem.masterHash.');
+    console.log('[WATCH-4] ✅ Watcher reactivo instalado em UNIFEDSystem.masterHash (com cascata _syncPureDashboard).');
 })();
 
 /**

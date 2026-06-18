@@ -27,7 +27,7 @@ window.UNIFED_ArchitectureReport = {
         // NOTA: este dicionário é DISTINTO de expectedHashes (usado em validateModuleIntegrity).
         // Ambos devem estar sincronizados — actualizados em simultâneo a cada lote.
         const MODULE_INTEGRITY = {
-            'script.js':                           '9bdb4e51b1c087da6cc7f9aacecc776856c9c0933a1212ef17c9bd9931a1960d',
+            'script.js':                           'cef917a37a22d4af96d122e17d71c65bc107ed6b80c55ffe072d1b5fdef19325',
             'unifed_triada_export.js':             '23381bb9089606db780dd0678979c8ead9abf671543da29c61bf98082f9d7dde',
             'unifed_questionnaire_50questions.js': 'fb85ac006cddfeb695fabe9cea90baeed27eb4941473a588adad9b5ef22973f1',
             'unifed_merkle_engine.js':             '474b73ecc0861ec6f87c07e2af138050b07ad5d1db72624383c05ed659c5e94f',
