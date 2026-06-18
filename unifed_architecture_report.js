@@ -28,7 +28,7 @@ window.UNIFED_ArchitectureReport = {
         // Ambos devem estar sincronizados — actualizados em simultâneo a cada lote.
         const MODULE_INTEGRITY = {
             'script.js':                           '9bdb4e51b1c087da6cc7f9aacecc776856c9c0933a1212ef17c9bd9931a1960d',
-            'unifed_triada_export.js':             '3bbc6bd7b8518fee39b68416daf096b98bbe691b8f17a78a5ef1dfd90b52e724',
+            'unifed_triada_export.js':             '23381bb9089606db780dd0678979c8ead9abf671543da29c61bf98082f9d7dde',
             'unifed_questionnaire_50questions.js': 'fb85ac006cddfeb695fabe9cea90baeed27eb4941473a588adad9b5ef22973f1',
             'unifed_merkle_engine.js':             '474b73ecc0861ec6f87c07e2af138050b07ad5d1db72624383c05ed659c5e94f',
             'enrichment.js':                       '1d6b9fd8ead518398d2c289f56ece1449a1118f72c92c94714dc3ec1e695f33b',
@@ -433,7 +433,7 @@ window.UNIFED_ArchitectureReport = {
     // a sua integridade é garantida pelo Master Hash do lote em UNIFED_STATE.md).
     const expectedHashes = {
         'script.js':                           '9bdb4e51b1c087da6cc7f9aacecc776856c9c0933a1212ef17c9bd9931a1960d',
-        'unifed_triada_export.js':             '3bbc6bd7b8518fee39b68416daf096b98bbe691b8f17a78a5ef1dfd90b52e724',
+        'unifed_triada_export.js':             '23381bb9089606db780dd0678979c8ead9abf671543da29c61bf98082f9d7dde',
         'unifed_contraperiria_export.js':      '7b575e84cde075917d39a5aa4caa0f5980cb767f08d0590868397410027a149f',
         'unifed_questionnaire_50questions.js': 'fb85ac006cddfeb695fabe9cea90baeed27eb4941473a588adad9b5ef22973f1',
         'unifed_merkle_engine.js':             '474b73ecc0861ec6f87c07e2af138050b07ad5d1db72624383c05ed659c5e94f',

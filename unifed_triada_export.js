@@ -1744,7 +1744,8 @@
                 ['Contribuição IMT/AMT Omitida (5%)', formatForensicCurrency(contribuicaoIMT), ''],
                 ['Agravamento Bruto IRC (C2 ÷ Meses x 12)', formatForensicCurrency(omissaoCustos), ''],
                 ['IRC Estimado (21% sobre Agravamento Anual)', formatForensicCurrency(ircEstimado), ''],
-                ['Impacto Mensal · 38.000 condutores PT', formatForensicCurrency(impactoMensal38k), ''],
+                [`${isPT ? 'Impacto Médio Mensal (Base Unitária por Viatura) × 38.000 condutores PT' : 'Monthly Average Impact (Unit Base per Vehicle) × 38,000 drivers PT'}`, formatForensicCurrency(mediaMensalOmissao), ''],
+                [`${isPT ? 'Impacto Mensal Total Mercado Estimado (38k condutores)' : 'Estimated Total Monthly Market Impact (38k drivers)'}`, formatForensicCurrency(impactoMensal38k), ''],
                 ['Impacto Anual · 38.000 condutores x 12 meses PT', formatForensicCurrency(impactoAnual38k), ''],
                 ['% Omissão Receita SAF-T vs DAC7', `${m.discrepancyPct.toFixed(2)}%`, ''],
                 ['% Diferencial de Base em Análise (Desp. vs Fat.)', `${percOmissaoCustos.toFixed(2)}%`, ''],
@@ -2240,7 +2241,7 @@ ADMISSIBILIDADE DA PROVA DIGITAL:
 
                 // ========== 19. IMPACTO SISTÉMICO ESTIMADO ==========
                 { text: `IMPACTO SISTÉMICO ESTIMADO (7 Anos · 38.000 operadores x 12 meses): ${formatForensicCurrency(impacto7Anos)}`, style: 'h2' },
-                { text: `Esta consultoria técnica revela um padrão de omissão que, extrapolado ao universo de 38.000 operadores, representa uma exposição tributária de ${formatForensicCurrency(impacto7Anos)}. Este dado fundamenta a relevância da presente ação para a tutela de interesses coletivos e correção de distorções de mercado. Projeção: Omissão mensal média x 38.000 motoristas TVDE (INE/IMT) x 12 meses x 7 anos (prazo Art. 45.º LGT). Projeção fundamenta relevância processual para escritórios de elite (Projection supports legal relevance for elite law firms).`, style: 'normal', margin: [0, 0, 0, 15] },
+                { text: `Esta consultoria técnica revela um padrão de omissão que, extrapolado ao universo de 38.000 operadores, representa uma exposição tributária de ${formatForensicCurrency(impacto7Anos)}. Este dado fundamenta a relevância da presente ação para a tutela de interesses coletivos e correção de distorções de mercado. Projeção: Impacto médio mensal (base unitária por viatura) × 38.000 condutores TVDE (INE/IMT) × 12 meses × 7 anos (prazo Art. 45.º LGT). Fórmula: E(7y) = μ × 12 × 7 × N, onde μ = impacto médio mensal por viatura. Projeção fundamenta relevância processual para escritórios de elite (Projection supports legal relevance for elite law firms).`, style: 'normal', margin: [0, 0, 0, 15] },
 
                 // ========== 20. PERDA DE CHANCE E DANO REPUTACIONAL ==========
                 { text: "PERDA DE CHANCE E DANO REPUTACIONAL — RESPONSABILIDADE CIVIL EXTRACONTRATUAL", style: 'h2' },
