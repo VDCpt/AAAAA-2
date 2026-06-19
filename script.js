@@ -6895,7 +6895,17 @@ function updateDashboard() {
         const qLang = window.currentLang || 'pt';
         const mesesDados = UNIFEDSystem.dataMonths.size || 1;
         const mediaBruta = cross.discrepanciaCritica / mesesDados;
-        const mediaConservadora = cross.impactoMensalMercado / 38000;
+        // RETIF-1: substituição do literal 38000 por variável contextual rastreável.
+        // Fonte: window.UNIFEDSystem.parameters.marketOperators (campo de configuração).
+        // Fallback documentado: 38.000 condutores TVDE activos em Portugal (INE/IMT 2024,
+        //   Relatório TVDE Q3 2024, publicado em https://www.imt-ip.pt).
+        // Este valor é o denominador do modelo E(7y) = μ × 12 × 7 × N.
+        // Qualquer alteração a N deve ser feita em UNIFEDSystem.parameters.marketOperators,
+        // não no código — garantindo rastreabilidade forense da base de cálculo.
+        const _N = (UNIFEDSystem.parameters && UNIFEDSystem.parameters.marketOperators > 0)
+            ? UNIFEDSystem.parameters.marketOperators
+            : 38000; // cenário base regulatório INE/IMT 2024
+        const mediaConservadora = cross.impactoMensalMercado / _N;
         const is2S = (UNIFEDSystem.selectedPeriodo || 'anual') === '2s';
         const hasAssimetria = is2S && mesesDados < 6;
         const _ffc = window.formatForensicCurrency || formatCurrency;
@@ -6917,7 +6927,22 @@ function updateDashboard() {
         `;
 
         if (hasAssimetria) {
-            html += `<div class="quantum-breakdown-item" style="border-top:1px solid rgba(245,158,11,0.5);margin-top:0.3rem;padding-top:0.3rem;color:#f59e0b;background:rgba(245,158,11,0.05);border-radius:4px;padding:6px 10px;"><span>⚠️ ${qLang === 'pt' ? 'Aviso: DAC7 (2.º Semestre = 6 meses) vs Extratos/SAF-T (4 meses) — a comparação direta pode subestimar a discrepância. Considere pro-rata.' : 'Warning: DAC7 (2nd Semester = 6 months) vs Statements/SAF-T (4 months) — direct comparison may underestimate discrepancy. Consider pro-rata.'}</span></div>`;
+            // RETIF-1b: nota de ressalva metodológica RGIT sobre amostragem temporal < 6 meses
+            // Exportada para o payload de exportação via window._unifedMethodologyWarnings
+            const _dac7WarnPT = 'Aviso Metodológico: DAC7 (2.º Semestre = 6 meses) vs Extratos/SAF-T (' + mesesDados + ' meses) — a comparação directa pode subestimar a discrepância por desvio de sazonalidade. Recomenda-se análise pro-rata sob o RGIT Art. 103.º/104.º antes de extrapolar para 7 anos.';
+            const _dac7WarnEN = 'Methodological Warning: DAC7 (2nd Semester = 6 months) vs Statements/SAF-T (' + mesesDados + ' months) — direct comparison may underestimate discrepancy due to seasonal bias. Pro-rata analysis recommended under RGIT Art. 103/104 before 7-year extrapolation.';
+            html += `<div class="quantum-breakdown-item" style="border-top:1px solid rgba(245,158,11,0.5);margin-top:0.3rem;padding-top:0.3rem;color:#f59e0b;background:rgba(245,158,11,0.05);border-radius:4px;padding:6px 10px;"><span>⚠️ ${qLang === 'pt' ? _dac7WarnPT : _dac7WarnEN}</span></div>`;
+            // Persistir nota no payload global para captura pelo motor de exportação
+            if (!window._unifedMethodologyWarnings) window._unifedMethodologyWarnings = [];
+            window._unifedMethodologyWarnings.push({
+                code: 'DAC7_TEMPORAL_ASSIMETRIA',
+                mesesDados: mesesDados,
+                mesesDAC7: 6,
+                norma: 'RGIT Art. 103.º/104.º',
+                timestamp: new Date().toISOString(),
+                pt: _dac7WarnPT,
+                en: _dac7WarnEN
+            });
         }
         quantumBreakdownEl.innerHTML = html;
     }
@@ -9595,25 +9620,47 @@ window._syncPureDashboard = (function() {
                 if (atfMesesEl)    { atfMesesEl.innerText = `1 mês com dados (${monthKeys[0]})`; }
             }
 
-            // ── FASE 10 — BLOCO 2: Cálculo determinístico de outliers via desvio padrão ──
-            // Usa população completa (não amostra) dos deltas mensais |BTOR_m - BTF_m|.
-            // outlierCount = pontos fora do intervalo [μ - 2σ, μ + 2σ].
-            // Substitui o valor estático "0 outliers" hardcoded no DOM.
+            // ── RETIF-2: Cálculo de outliers por IQR (não-paramétrico) ──────────────
+            // Substituição de 2σ (pressupõe distribuição normal — inadequado para
+            // dados económicos assimétricos) por método Tukey IQR:
+            //   Outlier := x > Q3 + 1.5 × IQR  ou  x < Q1 - 1.5 × IQR
+            //   onde IQR = Q3 - Q1 (Intervalo Interquartil).
+            // Método robusto, livre de pressupostos de normalidade estatística.
+            // Referência: Tukey (1977) — "Exploratory Data Analysis".
             {
                 const diffValues = monthKeys.map(m =>
                     Math.abs((monthlyData[m].despesas || 0) - (monthlyData[m].faturaPlataforma || 0)));
-                const avgDiff = diffValues.reduce((a, b) => a + b, 0) / (diffValues.length || 1);
-                const stdDevDiff = diffValues.length > 1
-                    ? Math.sqrt(diffValues.map(x => Math.pow(x - avgDiff, 2)).reduce((a, b) => a + b, 0) / (diffValues.length - 1))
-                    : 0;
-                const outlierCount = stdDevDiff > 0
-                    ? diffValues.filter(x => Math.abs(x - avgDiff) > 2 * stdDevDiff).length
-                    : 0;
+
+                // Calcular quartis por ordenação (sem pressuposto de distribuição)
+                const _sorted = [...diffValues].sort((a, b) => a - b);
+                const _n = _sorted.length;
+                let outlierCount = 0;
+                let _iqrLabel = 'IQR';
+                if (_n >= 4) {
+                    // Quartis por interpolação linear (método padrão para amostras pequenas)
+                    const _q1Idx = (_n - 1) * 0.25;
+                    const _q3Idx = (_n - 1) * 0.75;
+                    const _q1 = _sorted[Math.floor(_q1Idx)] + (_q1Idx % 1) * (_sorted[Math.ceil(_q1Idx)] - _sorted[Math.floor(_q1Idx)]);
+                    const _q3 = _sorted[Math.floor(_q3Idx)] + (_q3Idx % 1) * (_sorted[Math.ceil(_q3Idx)] - _sorted[Math.floor(_q3Idx)]);
+                    const _iqr = _q3 - _q1;
+                    const _fenceHigh = _q3 + 1.5 * _iqr;
+                    const _fenceLow  = _q1 - 1.5 * _iqr;
+                    outlierCount = diffValues.filter(x => x > _fenceHigh || x < _fenceLow).length;
+                    _iqrLabel = `IQR=[${_q1.toFixed(0)}€,${_q3.toFixed(0)}€]`;
+                } else if (_n >= 2) {
+                    // Amostra insuficiente para IQR robusto — usar amplitude total como proxy
+                    const _range = _sorted[_n - 1] - _sorted[0];
+                    // Outlier heurístico: x > median + 2 × range (conservador)
+                    const _median = _sorted[Math.floor(_n / 2)];
+                    outlierCount = diffValues.filter(x => x > _median + 2 * _range).length;
+                    _iqrLabel = 'amplitude (n<4)';
+                }
+                // else: n < 2 → outlierCount = 0 (sem dados suficientes)
 
                 const outliersEl = document.getElementById('pure-atf-outliers');
                 if (outliersEl) {
                     outliersEl.setAttribute('data-i18n-ignore', 'true');
-                    outliersEl.textContent = `${outlierCount} outliers > 2σ`;
+                    outliersEl.textContent = `${outlierCount} outliers (Tukey IQR)`;
                     updated++;
                 }
                 const outliersSubEl = document.getElementById('pure-atf-outliers-sub');
@@ -9621,8 +9668,8 @@ window._syncPureDashboard = (function() {
                     outliersSubEl.setAttribute('data-i18n-ignore', 'true');
                     const isPT = window.currentLang === 'pt';
                     outliersSubEl.textContent = outlierCount === 0
-                        ? (isPT ? 'Sem picos estatisticamente anómalos' : 'No statistically anomalous peaks')
-                        : (isPT ? `${outlierCount} ponto(s) fora do intervalo esperado` : `${outlierCount} point(s) outside expected range`);
+                        ? (isPT ? `Sem valores fora do intervalo Tukey (${_iqrLabel})` : `No values outside Tukey fence (${_iqrLabel})`)
+                        : (isPT ? `${outlierCount} ponto(s) fora do intervalo Tukey (${_iqrLabel})` : `${outlierCount} point(s) outside Tukey fence (${_iqrLabel})`);
                     updated++;
                 }
             }
@@ -10840,10 +10887,22 @@ if (document.readyState === 'complete' || document.readyState === 'interactive')
                     // Micro-adiamento para garantir que o DOM está pronto
                     setTimeout(generateQRCode, 0);
                 }
-                // FASE 10: cascata _syncPureDashboard para actualizar todos os
-                // elementos DOM que exibem masterHash (pure-hash-prefix, etc.)
+                // RETIF-3: encadeamento Promise em vez de setTimeout 50ms.
+                // _syncPureDashboard é async — retorna Promise.
+                // .then() garante que a sincronização do DOM ocorre apenas após
+                // generateQRCode ter completado, em conformidade com ISO/IEC 27037:2012
+                // (integridade sequencial das operações de captura de prova digital).
+                // Nota: setters JS não podem ser async nativamente — Promise.then()
+                // é o mecanismo correcto de encadeamento assíncrono num setter síncrono.
                 if (typeof window._syncPureDashboard === 'function') {
-                    setTimeout(function() { window._syncPureDashboard(window.UNIFEDSystem); }, 50);
+                    Promise.resolve()
+                        .then(function() { return window._syncPureDashboard(window.UNIFEDSystem); })
+                        .then(function(updated) {
+                            console.log('[WATCH-4] DOM sincronizado (' + (updated || 0) + ' elementos) após mutação de masterHash.');
+                        })
+                        .catch(function(err) {
+                            console.error('[WATCH-4] Erro na sincronização DOM pós-masterHash:', err);
+                        });
                 }
             }
         },

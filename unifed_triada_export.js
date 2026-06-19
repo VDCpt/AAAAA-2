@@ -244,6 +244,14 @@
     // DEEP TREE WALK ABSOLUTO (SANITIZAÇÃO RECURSIVA PROFUNDA)
     // =========================================================================
     function deepSanitizePayload(obj) {
+        // RETIF-ZERO-ENTROPY: guardião de contexto. Em prova real (demoMode=false),
+        // a sanitização é bloqueada — dados autênticos de faturas/plataformas não podem
+        // ser rasurados fora de demonstração explícita. Formaliza no código a distinção
+        // entre anonimização comercial (DEMO) e integridade da prova (produção).
+        if (!window.UNIFEDSystem || !window.UNIFEDSystem.demoMode) {
+            console.warn('[RETIF-ZERO-ENTROPY] Sanitização bloqueada em contexto de prova real (demoMode=false).');
+            return obj;
+        }
         if (typeof obj !== 'object' || obj === null) return obj;
         
         if (Array.isArray(obj)) {
@@ -647,9 +655,14 @@
         const isDemoMode = (window.UNIFED_CONFIG && window.UNIFED_CONFIG.modo === 'DEMO')
             || (window.UNIFEDSystem && window.UNIFEDSystem.demoMode);
         if (isDemoMode) {
-            // FALHA 10 — R24: prefixo 'DEMO-' substituído por 'UNIFED-' (realCaseAnonymized)
-            const _fallbackId = 'UNIFED-' + Date.now().toString(36).toUpperCase().slice(-8);
-            triadaLog('info', '[FIX-SESSION-R24] SessionID sintético UNIFED gerado: ' + _fallbackId);
+            // RETIF-ZERO-ENTROPY: fallback derivado do masterHash (prova material),
+            // não do relógio de sistema. Elimina vetor de "idoneidade aparente" perante
+            // perito da contraparte que analise o código-fonte (Art. 125.º/327.º CPP).
+            // Requer masterHash já calculado (64 chars) — se ausente, usa hash de sessão vazia
+            // como último recurso determinístico (nunca Date.now()).
+            const _hashSeed = (window.UNIFEDSystem && window.UNIFEDSystem.masterHash) || 'NO-HASH-YET';
+            const _fallbackId = 'UNIFED-PRE-SESSION-' + CryptoJS.SHA256('UNIFED' + _hashSeed).toString().toUpperCase().slice(-8);
+            triadaLog('info', '[RETIF-ZERO-ENTROPY] SessionID derivado de masterHash (sem entropia temporal): ' + _fallbackId);
             if (window.UNIFEDSystem && !window.UNIFEDSystem.sessionId) {
                 window.UNIFEDSystem.sessionId = _fallbackId;
             }
@@ -2198,7 +2211,16 @@ ADMISSIBILIDADE DA PROVA DIGITAL:
                 // omissão (não o IVA/IRC sobre ela); o termo "dano fiscal mensal
                 // apurado" refere-se ao valor mensal apurado como omitido, que
                 // fundamenta os cálculos de IVA/IRC/projeção de mercado acima.
-                { text: `O padrão de omissão sustentado (${percOmissaoCustos.toFixed(2)}%) + dano fiscal mensal apurado de ${formatForensicCurrency(mediaMensalOmissao)} sustenta a análise de irregularidade comercial agravada (Art. 405.º CC).`, style: 'normal', margin: [0, 0, 0, 15] },
+                { text: `O padrão de omissão sustentado (${percOmissaoCustos.toFixed(2)}%) + dano fiscal mensal apurado de ${formatForensicCurrency(mediaMensalOmissao)} sustenta a análise de irregularidade comercial agravada (Art. 405.º CC).`, style: 'normal', margin: [0, 0, 0, isPT ? 5 : 5] },
+                // Captura de notas metodológicas geradas em runtime (ex: assimetria DAC7)
+                ...((window._unifedMethodologyWarnings && window._unifedMethodologyWarnings.length > 0)
+                    ? window._unifedMethodologyWarnings.map(w => ({
+                        text: `⚠️ NOTA METODOLÓGICA [${w.code}]: ${isPT ? w.pt : w.en}`,
+                        style: 'smallPrint',
+                        color: '#f59e0b',
+                        margin: [0, 0, 0, 5]
+                    }))
+                    : []),
 
                 // ========== 17. FACTOS CONSTATADOS (C1..C4) ==========
                 { text: "9. FACTOS CONSTATADOS / MATERIAL FACTS (Material Truth)", style: 'h2' },
