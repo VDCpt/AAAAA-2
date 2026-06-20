@@ -205,7 +205,7 @@ window.UNIFED_MerkleEngine = (function() {
                 timestamp: treeData.timestamp,
                 algorithm: 'SHA-256',
                 protocol: 'Merkle Tree (RFC 3161 compatible)',
-                eidas2Compliant: true,
+                eidas2Compliant: !!(window.UNIFEDSystem && window.UNIFEDSystem.config && window.UNIFEDSystem.config.eidas2Compliant),
                 selectiveDisclosure: {
                     enabled: true,
                     leafCount: treeData.leafCount,

@@ -180,6 +180,36 @@ if (!window.UNIFEDSystem) {
             verdict: null
         }
     };
+
+    // ── Protecção Anti-Adulteração (Acção 3 — auditoria de contra-perícia) ──────
+    // RISCO IDENTIFICADO: window.UNIFEDSystem é reatribuído em L4138/L8402 pelo
+    // próprio pipeline interno (reset de análise) — bloquear writable:false
+    // quebraria essa funcionalidade legítima.
+    // SOLUÇÃO: getter/setter no objecto window que intercepta QUALQUER atribuição
+    // futura a window.UNIFEDSystem e força a preservação do config original
+    // (frozen, calculado uma única vez). Mesmo que um atacante via consola execute
+    // window.UNIFEDSystem = {config:{eidas2Compliant:true}}, o setter substitui
+    // o config injectado pelo config frozen real antes de aceitar a atribuição.
+    (function _hardenUnifedSystemConfig() {
+        const _frozenConfig = window.UNIFEDSystem.config;
+        let _current = window.UNIFEDSystem;
+        try {
+            Object.defineProperty(window, 'UNIFEDSystem', {
+                get: function() { return _current; },
+                set: function(newVal) {
+                    if (newVal && typeof newVal === 'object') {
+                        // Força sempre o config original — ignora qualquer config injectado
+                        newVal.config = _frozenConfig;
+                    }
+                    _current = newVal;
+                },
+                configurable: false,
+                enumerable: true
+            });
+        } catch (_) {
+            console.warn('[ANTI-TAMPER] Falha ao blindar config de window.UNIFEDSystem.');
+        }
+    })();
 }
 
 // ============================================================================

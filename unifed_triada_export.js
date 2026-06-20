@@ -60,6 +60,19 @@
     'use strict';
 
     // ============================================================================
+    // M2: HELPER DE VERSÃO DINÂMICA — _unifedLiveVersion()
+    // ============================================================================
+    // Substitui literais estáticos de versão ('v1.0-COMMERCIAL-LITIGATION' sem
+    // sufixo de patch) por leitura dinâmica de window.UNIFED_VERSION.full.
+    // Garante que o output do PDF reflecte sempre a versão real do sistema
+    // (P3.2+F4, Fase 11, Fase 12, etc.) sem necessidade de editar este ficheiro
+    // a cada novo patch — fonte única: version.js.
+    function _unifedLiveVersion() {
+        return (window.UNIFED_VERSION && window.UNIFED_VERSION.full)
+            || 'v1.0-COMMERCIAL-LITIGATION';
+    }
+
+    // ============================================================================
     // RETIFICAÇÃO v1.0-R13: GARANTIR QUE UNIFEDSystem É EXTENSÍVEL
     // ============================================================================
     if (window.UNIFEDSystem && !Object.isExtensible(window.UNIFEDSystem)) {
@@ -1243,7 +1256,7 @@
 
         const maximalPayload = {
             metadata: {
-                source: 'UNIFED-PROBATUM v1.0-COMMERCIAL-LITIGATION',
+                source: 'UNIFED-PROBATUM ' + _unifedLiveVersion(),
                 timestamp: new Date().toISOString(),
                 timestampUnix: Math.floor(Date.now() / 1000),
                 session: metrics.session,
@@ -2192,7 +2205,7 @@ ADMISSIBILIDADE DA PROVA DIGITAL:
 
                 // ========== 15. CERTIFICAÇÃO DIGITAL ==========
                 { text: "7. CERTIFICAÇÃO DIGITAL", style: 'h2' },
-                { text: "Sistema de peritagem forense estruturado em conformidade com as normas, com selo de integridade digital SHA-256. Todos os relatórios são temporalmente selados e auditáveis.\n\nAlgoritmo Hash: SHA-256 (Forense)\nTimestamp: RFC 3161\nValidade Prova: Indeterminada\nCertificação: UNIFIED - PROBATUM v1.0-COMMERCIAL-LITIGATION · DORA COMPLIANT\n\nEste relatório cumpre com o Regulamento (UE) 2022/2554 (DORA) - Digital Operational Resilience Act, assegurando a resiliência operacional digital e a integridade das evidências digitais processadas.", style: 'normal', margin: [0, 0, 0, 15] },
+                { text: "Sistema de peritagem forense estruturado em conformidade com as normas, com selo de integridade digital SHA-256. Todos os relatórios são temporalmente selados e auditáveis.\n\nAlgoritmo Hash: SHA-256 (Forense)\nTimestamp: Modo de Teste / Simulação Interna (Ambiente: DEMO_ONLY)\nValidade Prova: Indeterminada\nCertificação: UNIFIED - PROBATUM v1.0-COMMERCIAL-LITIGATION", style: 'normal', margin: [0, 0, 0, 15] },
 
                 // ========== 16. ANÁLISE TÉCNICO-JURÍDICA DETALHADA ==========
                 { text: "8. ANÁLISE TÉCNICO-JURÍDICA / DETAILED EXPERT ANALYSIS", style: 'h2' },
@@ -2349,7 +2362,7 @@ As plataformas procedem ao pagamento dos prestadores por transferência bancári
 
                 // ========== 26. SÍNTESE JURÍDICA TÉCNICO-JURÍDICA ==========
                 { text: "SÍNTESE JURÍDICA TÉCNICO-JURÍDICA — ANÁLISE DETERMINÍSTICA", style: 'h2' },
-                { text: `Documento gerado sob metodologia forense UNIFED-PROBATUM. A integridade dos dados é assegurada pela análise algorítmica de base determinística (non-probabilistic). Esta síntese é elaborada exclusivamente sobre os dados forenses certificados constantes do UNIFEDSystem.analysis (Fonte de Verdade Imutável) e uma base de artigos legais estática (CIVA/CIRC/RGIT/CPP/DAC7). Conformidade: Art. 125.º CPP · ISO/IEC 27037:2012 · DORA (UE) 2022/2554.
+                { text: `Documento gerado sob metodologia forense UNIFED-PROBATUM. A integridade dos dados é assegurada pela análise algorítmica de base determinística (non-probabilistic). Esta síntese é elaborada exclusivamente sobre os dados forenses certificados constantes do UNIFEDSystem.analysis (Fonte de Verdade Imutável) e uma base de artigos legais estática (CIVA/CIRC/RGIT/CPP/DAC7). Conformidade: Art. 125.º CPP · ISO/IEC 27037:2012 · N/A_Standard_Mode.
 
 SÍNTESE JURÍDICA - MODO DE SEGURANÇA FORENSE
 [Nota: IA indisponível - Execução em modo standalone (narrativa local)]
@@ -2425,11 +2438,11 @@ Dada a discrepância de ${percOmissaoCustos.toFixed(2)}%, opera-se a inversão d
                 { text: `Protocolo de Carimbo de Tempo Qualificado conforme Regulamento eIDAS (UE) 910/2014 e RFC 3161 (IETF).
 
 • ESTADO DO SELO: NÃO APLICADO NESTA SESSÃO
-• PROTOCOLO: RFC 3161 (FreeTSA.org)
-• AUTORIDADE (TSA): FreeTSA.org — https://freetsa.org
+• PROTOCOLO: N/A_Standard_Mode
+• AUTORIDADE (TSA): N/A_Standard_Mode
 • DATA/HORA UTC:
 • TOKEN / REFERÊNCIA:
-• MODO DE SELAGEM: Submissão Online ao Nó FreeTSA
+• MODO DE SELAGEM: N/A_Standard_Mode
 • FICHEIRO TSR:
 • NÚMERO DE SÉRIE (TSR):
 • HASH MASTER SHA-256: ${m.masterHash.substring(0, 16)}...
@@ -2445,7 +2458,7 @@ CONFORMIDADE NORMATIVA ACUMULADA:
 • eIDAS (UE) 910/2014 — Serviço Eletrónico de Confiança Qualificado
 • RFC 3161 (IETF) — Protocolo de Carimbo de Tempo Internet PKI
 • ISO/IEC 27037:2012 — Diretrizes para Identificação e Recolha de Provas Digitais
-• DORA (UE) 2022/2554 — Resiliência Operacional Digital do Sector Financeiro
+• N/A_Standard_Mode — Resiliência Operacional Digital do Sector Financeiro
 • Art. 30.º RGPD — Registo das Atividades de Tratamento de Dados Pessoais`, style: 'normal', margin: [0, 0, 0, 8] },
                 { text: 'STATUS DE SELAGEM POR EVIDÊNCIA', bold: true, fontSize: 9, color: '#1e3a8a', margin: [0, 4, 0, 4] },
                 {
@@ -2552,7 +2565,7 @@ Fundamentação Legal: Art. 327.º CPP (Contraditório) · Art. 125.º CPP (Admi
                 { text: "ADMISSIBILIDADE DA PROVA DIGITAL — Art. 125.º CPP", style: 'h2', margin: [0, 10, 0, 5] },
                 { text: "São admissíveis como meios de prova todos os meios não proibidos por lei (Art. 125.º do Código de Processo Penal Português). O presente relatório técnico-jurídica constitui Prova Digital Material, produzida com recurso a metodologia forense certificada (ISO/IEC 27037:2012), integridade criptográfica SHA-256 e cadeia de custódia documentada, sendo admissível perante as Instâncias Judiciais Competentes nos termos do Art. 125.º CPP e do Art. 32.º da Constituição da República Portuguesa (Garantias de Defesa). A omissão de IVA apurada fundamenta a qualificação do facto nos termos dos Art. 103.º (Fraude Fiscal) e Art. 104.º (Fraude Fiscal Qualificada) do RGIT.", style: 'normal', margin: [0, 0, 0, 10] },
                 { text: "SELAGEM TEMPORAL RFC 3161 — DATA CERTA eIDAS", style: 'h2', margin: [0, 10, 0, 5] },
-                { text: "Documento selado temporalmente via Protocolo RFC 3161 (TSA: FreeTSA.org), garantindo Data Certa eIDAS. Os selos .tsr individuais de cada evidência encontram-se arquivados na pasta 03_REPOSITORIO_OTS.", style: 'normal', margin: [0, 0, 0, 10] },
+                { text: "Documento selado por hash SHA-256 em ambiente de demonstração (DEMO_ONLY). O protocolo RFC 3161 (TSA qualificada) não se encontra activo nesta instância — requer validação prévia do prestador na Trusted List ANS/CNCS (Art. 22.º Reg. UE 910/2014) antes de produzir Data Certa eIDAS com força probatória qualificada.", style: 'normal', margin: [0, 0, 0, 10] },
                 { text: "CONSULTOR TÉCNICO — COMPROMISSO DE HONRA E SALVAGUARDA (ART. 153.º E 155.º CPP)", style: 'h2', margin: [0, 10, 0, 5] },
                 { text: "Identificação:\n* Nome: Técnico Forense\n* Cargo: Analista e Consultor Forense Independente | Big Data Analytics\n* Estatuto: Consultor Técnico Independente (Art. 155.º do CPP). Atuação em conformidade com o regime de liberdade de prova e consultoria técnica documental.\n\nNOTA DE SALVAGUARDA JURÍDICA E ÂMBITO: As conclusões constantes neste documento infraestruturam-se exclusivamente nos artefactos e elementos documentais disponibilizados pelo solicitante. O presente parecer constitui uma análise técnica independente de natureza consultiva e prova documental assistencial, não substituindo, para quaisquer efeitos processuais, a realização de uma consultoria técnica oficial ordenada pela autoridade judiciária competente.\n\nAnálise material baseada em dados estruturados fornecidos; o escopo limita-se à integridade financeira e documental dos ativos digitais apresentados, conforme Art. 125.º CPP.\n\nDECLARAÇÃO DE COMPROMISSO: Declaro, sob compromisso de honra, que o presente parecer técnico foi elaborado na qualidade de Consultor Técnico Independente, assumindo estritamente os deveres de independência, objetividade e imparcialidade previstos no Artigo 153.º do Código de Processo Penal Português. Certifico que a metodologia aplicada (Baseada em ISRS 4400 e boas práticas de Digital Forensics) é reprodutível e que os resultados aqui vertidos traduzem fielmente a análise técnica realizada sobre o lote de dados fornecido.\n\nData: " + dataEmissao + "\n\nAssinatura do Técnico Responsável Pela Análise\n\n[ UNIFED - PROBATUM CERTIFIED - ANALISTA E CONSULTOR FORENSE - v1.0-COMMERCIAL-LITIGATION ]\nEstudo de Viabilidade - Consultoria Forense Especializada - Uso restrito a mandato jurídico autorizado\nFundamentação: RGIT Art. 103.º (Fraude Fiscal) - Art. 104.º (Fraude Qualificada) - CRP Art. 32.º - CPP Art. 125.º", style: 'normal', margin: [0, 0, 0, 15] },
 
@@ -2770,7 +2783,7 @@ Fundamentação Legal: Art. 327.º CPP (Contraditório) · Art. 125.º CPP (Admi
                 { text: `Suporte Físico: Pen-Drive Criptografada (Volume único: WORM ou Read-Only hardware)`, margin: [0, 0, 0, 20] },
 
                 { text: '2. DECLARAÇÃO DE INTEGRIDADE (Cadeia de Custódia)', style: 'h2' },
-                { text: 'O Consultor e Analista Forense Independente | Big Data Analytics\nna qualidade de Consultor Técnico Independente (Art. 155.º do CPP), declara sob compromisso de honra que:\n\n• Os dados foram processados exclusivamente em ambiente de memória volátil (RAM), sem escrita ou alteração nos suportes originais.\n• A criptografia do suporte de entrega foi realizada com algoritmo AES-256-GCM.\n• A integridade matemática dos ficheiros contidos no suporte é verificável através do Master Hash acima identificado, utilizando qualquer ferramenta de hashing padrão (SHA-256).', margin: [0, 0, 0, 20], alignment: 'justify' },
+                { text: 'O Consultor e Analista Forense Independente | Big Data Analytics\nna qualidade de Consultor Técnico Independente (Art. 155.º do CPP), declara sob compromisso de honra que:\n\n• Os dados foram processados exclusivamente em ambiente de memória volátil (RAM), sem escrita ou alteração nos suportes originais.\n• A integridade do suporte de entrega e dos artefactos digitais foi validada e selada recorrendo a funções de dispersão criptográfica (Hashing) com o algoritmo SHA-256.\n• A integridade matemática dos ficheiros contidos no suporte é verificável através do Master Hash acima identificado, utilizando qualquer ferramenta de hashing padrão (SHA-256).', margin: [0, 0, 0, 20], alignment: 'justify' },
 
                 { text: '3. PROCEDIMENTO DE RECEÇÃO E CUSTÓDIA (Instruções para o Advogado)', style: 'h2' },
                 { text: 'Para garantir a admissibilidade da prova em tribunal, solicita-se:\n\n• Registo de Receção: O mandatário deve confirmar a integridade física do suporte e validar o Master Hash (ver Anexo de Evidências) no momento da recepção.\n• Protocolo de Abertura: A chave de acesso à criptografia deve ser transmitida via canal secundário (ex: nota manuscrita ou entrega pessoal separada), nunca enviada junto com o suporte.\n• Preservação: O suporte original não deve ser utilizado para análise operacional. Recomenda-se a criação de uma cópia de trabalho (Bit-Stream Image) para utilização no escritório.', margin: [0, 0, 0, 20], alignment: 'justify' },

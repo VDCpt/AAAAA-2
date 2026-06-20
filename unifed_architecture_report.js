@@ -27,10 +27,10 @@ window.UNIFED_ArchitectureReport = {
         // NOTA: este dicionário é DISTINTO de expectedHashes (usado em validateModuleIntegrity).
         // Ambos devem estar sincronizados — actualizados em simultâneo a cada lote.
         const MODULE_INTEGRITY = {
-            'script.js':                           '41d10b40d9e9ee1bf41dfa0b6a3f7acedf33c1925fa5b1293419f29e9c63ad2d',
-            'unifed_triada_export.js':             'ac5cbaf76a30d94215845e966972e1b606cabaca9a2271f412d0d168e3efc4c0',
+            'script.js':                           '74dde5646129444a43aa0f7f59eae16f04fe80610835582b8936ba776cc87690',
+            'unifed_triada_export.js':             '6b5866cafe4616e30bb9bf237f74568d3fa61844425e3a263d9dbf3e93014f87',
             'unifed_questionnaire_50questions.js': 'fb85ac006cddfeb695fabe9cea90baeed27eb4941473a588adad9b5ef22973f1',
-            'unifed_merkle_engine.js':             '474b73ecc0861ec6f87c07e2af138050b07ad5d1db72624383c05ed659c5e94f',
+            'unifed_merkle_engine.js':             '0a5f4a150e8e7e951a39bd526127af3f8effff18de389124c2b7d22cae1054a1',
             'enrichment.js':                       '1d6b9fd8ead518398d2c289f56ece1449a1118f72c92c94714dc3ec1e695f33b',
             'nexus.js':                            '68e41429abdeae7f87081b1851f66ab0dc8833510de179e56b79a4fdf6a6e45e',
             'translations.js':                     '249fe01ae7fa041b5567a6d508290211f275828c6791f01ec5769e9c09ee3ce1',
@@ -304,8 +304,7 @@ window.UNIFED_ArchitectureReport = {
     <h2>✅ Conformidade Regulatória</h2>
     <div class="compliance">✓ ISO/IEC 27037:2012 — Diretrizes para Identificação, Recolha, Aquisição e Preservação de Evidência Digital</div>
     <div class="compliance">✓ NIST SP 800-86 — Guia de Integração de Técnicas Forenses na Resposta a Incidentes</div>
-    <div class="compliance">✓ RFC 3161 — Time-Stamp Protocol (TSP) para Autenticação de Timestamps</div>
-    <div class="compliance">✓ eIDAS 2.0 — Selective Disclosure via Merkle Tree Proofs</div>
+    <div class="compliance">${window.UNIFEDSystem.config.eidas2Compliant ? '✓ eIDAS 2.0 + RFC 3161' : '✗ Timestamp Local Não Certificado'}</div>
     <div class="compliance">✓ Art. 125º CPP — Admissibilidade de Prova Técnico-Jurídica Digital em Portugal</div>
     <div class="compliance">✓ Art. 103º Normas de Conformidade Fiscal — Obrigações de Faturação e Documentação Fiscal</div>
     <div class="compliance">✓ Art. 2º, n.º 1, al. i) CIVA — Operações Sujeitas a Autoliquidação</div>
@@ -371,7 +370,7 @@ window.UNIFED_ArchitectureReport = {
     </div>
     <div class="key-value">
         <div class="key">Protocolo de Timestamp:</div>
-        <div class="value">RFC 3161 (Selos Temporais Autenticados)</div>
+        <div class="value">${window.UNIFEDSystem.config.eidas2Compliant ? '✓ eIDAS 2.0 + RFC 3161' : '✗ Timestamp Local Não Certificado'}</div>
     </div>
     <div class="key-value">
         <div class="key">Estrutura de Dados:</div>
@@ -432,11 +431,11 @@ window.UNIFED_ArchitectureReport = {
     // unifed_architecture_report.js não valida a si próprio (bootstrap problem —
     // a sua integridade é garantida pelo Master Hash do lote em UNIFED_STATE.md).
     const expectedHashes = {
-        'script.js':                           '41d10b40d9e9ee1bf41dfa0b6a3f7acedf33c1925fa5b1293419f29e9c63ad2d',
-        'unifed_triada_export.js':             'ac5cbaf76a30d94215845e966972e1b606cabaca9a2271f412d0d168e3efc4c0',
+        'script.js':                           '74dde5646129444a43aa0f7f59eae16f04fe80610835582b8936ba776cc87690',
+        'unifed_triada_export.js':             '6b5866cafe4616e30bb9bf237f74568d3fa61844425e3a263d9dbf3e93014f87',
         'unifed_contraperiria_export.js':      '7b575e84cde075917d39a5aa4caa0f5980cb767f08d0590868397410027a149f',
         'unifed_questionnaire_50questions.js': 'fb85ac006cddfeb695fabe9cea90baeed27eb4941473a588adad9b5ef22973f1',
-        'unifed_merkle_engine.js':             '474b73ecc0861ec6f87c07e2af138050b07ad5d1db72624383c05ed659c5e94f',
+        'unifed_merkle_engine.js':             '0a5f4a150e8e7e951a39bd526127af3f8effff18de389124c2b7d22cae1054a1',
         'enrichment.js':                       '1d6b9fd8ead518398d2c289f56ece1449a1118f72c92c94714dc3ec1e695f33b',
         'nexus.js':                            '68e41429abdeae7f87081b1851f66ab0dc8833510de179e56b79a4fdf6a6e45e',
         'translations.js':                     '249fe01ae7fa041b5567a6d508290211f275828c6791f01ec5769e9c09ee3ce1',

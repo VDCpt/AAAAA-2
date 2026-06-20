@@ -52,7 +52,7 @@
     }
 
     // ── Constantes de identificação ──────────────────────────────────────────
-    const MODULE_VERSION  = 'v1.0-COMMERCIAL-LITIGATION-P3.1';
+    const MODULE_VERSION  = (window.UNIFED_VERSION && window.UNIFED_VERSION.full) || 'v1.0-COMMERCIAL-LITIGATION-P3.2+F4';
     const MODULE_ID       = 'UNIFED-PROBATUM-CONTRAPERIRIA';
     const PATCH_REGISTRY  = [
         {
@@ -262,7 +262,9 @@
                 versao:    MODULE_VERSION,
                 timestamp: new Date().toISOString(),
                 timestampUnix: Math.floor(Date.now() / 1000),
-                normas:    ['ISO/IEC 27037:2012', 'Art. 125.º CPP', 'D.L. n.º 28/2019', 'eIDAS 2.0']
+                normas:    window.UNIFEDSystem.config.eidas2Compliant
+                    ? ['ISO/IEC 27037:2012', 'Art. 125.º CPP', 'D.L. n.º 28/2019', 'eIDAS 2.0']
+                    : ['ISO/IEC 27037:2012', 'Art. 125.º CPP', 'D.L. n.º 28/2019']
             },
             sistema: {
                 versao:       (sys && sys.version)           || 'v1.0-COMMERCIAL-LITIGATION',
